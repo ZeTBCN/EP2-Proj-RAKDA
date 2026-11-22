@@ -1,0 +1,13 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.vscode/
+
+# Node / Python local artifacts
+node_modules/
+__pycache__/
+*.pyc
+.env
+*.log
