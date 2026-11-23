@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAKDA Ltd. (Group A-10) — 2045 Circular Urban Digital Twin</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <div id="viewport" aria-label="3D Engineering Digital Twin Viewport"></div>
+
+    <div id="offline-banner" class="offline-banner hidden" role="alert">
+      <strong>3D Viewport Unavailable:</strong>
+      <span id="offline-msg">Could not load Three.js 0.170.0 or WebGL. Live physics telemetry and controls remain active.</span>
+    </div>
+
+    <!-- Top Glassmorphism Header -->
+    <header id="top-bar" class="glass-panel">
+      <div class="brand-block">
+        <span class="brand-badge">RAKDA · A-10</span>
+        <div class="brand-titles">
+          <h1>10.0 MW Subterranean Data Centre &amp; 20,000-Resident Circular District (2045)</h1>
+          <p class="subtitle">Trinity College Dublin 1E17 EP2 · Draft 3.2 Engineering Digital Twin</p>
+        </div>
+      </div>
+
+      <div class="kpi-strip">
+        <div class="kpi-pill">
+          <span class="kpi-label">IT Load</span>
+          <strong id="kpi-it" class="kpi-val accent-cyan">10.00 MW</strong>
+        </div>
+        <div class="kpi-pill">
+          <span class="kpi-label">PUE</span>
+          <strong id="kpi-pue" class="kpi-val accent-emerald">1.015</strong>
+        </div>
+        <div class="kpi-pill">
+          <span class="kpi-label">Heat Coverage</span>
+          <strong id="kpi-cov" class="kpi-val accent-orange">228.3%</strong>
+        </div>
+        <div class="kpi-pill">
+          <span class="kpi-label">6G V2X RTT</span>
+          <strong id="kpi-rtt" class="kpi-val accent-violet">143.2 μs</strong>
+        </div>
+        <div class="kpi-pill">
+          <span class="kpi-label">Avoided CO₂</span>
+          <strong id="kpi-co2" class="kpi-val accent-emerald">23,842 t/yr</strong>
+        </div>
+        <div class="kpi-pill">
+          <span class="kpi-label">NPV @ 4%</span>
+          <strong id="kpi-npv" class="kpi-val accent-amber">+€232.98M</strong>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button id="btn-toggle-left" class="icon-btn" title="Toggle Controls Panel">Controls</button>
+        <button id="btn-toggle-right" class="icon-btn" title="Toggle Telemetry Panel">Telemetry</button>
+        <button id="btn-present-top" class="icon-btn primary-btn" title="Presentation Mode (H)">Present (H)</button>
+      </div>
+    </header>
+
+    <!-- Left Control Panel -->
+    <aside id="left-panel" class="side-panel left-panel glass-panel">
+      <section class="panel-section">
+        <div class="section-header">
+          <h2>Engineering Scenarios</h2>
+          <span class="tag">7 Presets</span>
+        </div>
+        <div id="scenario-buttons" class="preset-grid"></div>
+        <p id="scenario-desc" class="scenario-desc"></p>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header">
+          <h2>Live Parameters</h2>
+          <span class="tag">Real-Time</span>
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label for="slider-util">DC Utilization</label>
+            <span id="val-util" class="mono">100% (10.0 MW)</span>
+          </div>
+          <input id="slider-util" type="range" min="10" max="100" step="1" value="100" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label for="slider-fcap">Heat Capture (f_cap)</label>
+            <span id="val-fcap" class="mono">98%</span>
+          </div>
+          <input id="slider-fcap" type="range" min="75" max="98" step="1" value="98" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label for="slider-temp">Ambient Temp (Dublin)</label>
+            <span id="val-temp" class="mono">10.0 °C</span>
+          </div>
+          <input id="slider-temp" type="range" min="-8" max="30" step="0.5" value="10" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label for="slider-rain">Rainfall Multiplier</label>
+            <span id="val-rain" class="mono">1.00× (773 mm/yr)</span>
+          </div>
+          <input id="slider-rain" type="range" min="0" max="2" step="0.05" value="1" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label for="slider-time">Time of Day (Solar PV)</label>
+            <span id="val-time" class="mono">13:30</span>
+          </div>
+          <input id="slider-time" type="range" min="0" max="23.9" step="0.25" value="13.5" />
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label for="slider-xray">Ground X-Ray Opacity</label>
+            <span id="val-xray" class="mono">78%</span>
+          </div>
+          <input id="slider-xray" type="range" min="5" max="100" step="1" value="78" />
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header">
+          <h2>Faults &amp; SDN Control</h2>
+          <span class="tag">74.9× vs Pump</span>
+        </div>
+
+        <label class="switch-row">
+          <span>SDN Electro-Thermal Shifting</span>
+          <input id="toggle-sdn" type="checkbox" checked />
+        </label>
+
+        <label class="switch-row">
+          <span>Scenario B HTHP (45°C → 70°C)</span>
+          <input id="toggle-scenariob" type="checkbox" />
+        </label>
+
+        <div class="vault-fault-block">
+          <span class="micro-label">Toggle Vault Fault (Click to Trip/Restore):</span>
+          <div id="vault-fault-btns" class="vault-btn-row"></div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header">
+          <h2>3D System Layers</h2>
+        </div>
+        <div class="layer-grid">
+          <label class="check-pill"><input id="layer-surface" type="checkbox" checked /> Surface District</label>
+          <label class="check-pill"><input id="layer-heatmap" type="checkbox" /> Thermal Heat-Map</label>
+          <label class="check-pill"><input id="layer-loop1" type="checkbox" checked /> Loop 1 (75°C)</label>
+          <label class="check-pill"><input id="layer-loop2" type="checkbox" checked /> Loop 2 (5GDHC)</label>
+          <label class="check-pill"><input id="layer-loop3" type="checkbox" checked /> Loop 3 (Water/Rain)</label>
+          <label class="check-pill"><input id="layer-optical" type="checkbox" checked /> Optical Ring</label>
+          <label class="check-pill"><input id="layer-vaults" type="checkbox" checked /> Level −4 Vaults</label>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header">
+          <h2>Camera Presets</h2>
+          <span class="tag">Keys 1–6</span>
+        </div>
+        <div id="camera-presets" class="camera-grid"></div>
+      </section>
+    </aside>
+
+    <!-- Right Telemetry & Inspector Panel -->
+    <aside id="right-panel" class="side-panel right-panel glass-panel">
+      <section id="inspector-card" class="panel-section inspector-card">
+        <div class="section-header">
+          <h2>Subsystem Inspector</h2>
+          <span id="inspector-badge" class="tag cyan-tag">Click 3D Asset</span>
+        </div>
+        <h3 id="inspector-title" class="inspector-title">Click any 3D Vault, Tank, Pod, PV, or Plaza</h3>
+        <p id="inspector-desc" class="inspector-desc">
+          Select a subterranean vault, 2,500 m³ thermal store, 10,000 m³ cistern, HTHP bank, TCES, TI-PTES, Micro-ORC, or surface asset in the 3D scene to inspect Draft 3.2 specifications and live telemetry.
+        </p>
+        <ul id="inspector-specs" class="inspector-specs"></ul>
+        <div id="inspector-metrics" class="kv-grid"></div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header">
+          <h2>Thermal &amp; Exergy Balance</h2>
+          <span class="tag orange-tag">Loops 1 &amp; 2</span>
+        </div>
+        <div id="telemetry-thermal"></div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header">
+          <h2>Power, Hydrology &amp; Optical</h2>
+          <span class="tag cyan-tag">CRU · Loop 3 · 6G</span>
+        </div>
+        <div id="telemetry-grid-water"></div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header">
+          <h2>30-Yr Economics &amp; Survey</h2>
+          <span class="tag amber-tag">Case 2 · N=109</span>
+        </div>
+        <div id="telemetry-finance"></div>
+      </section>
+    </aside>
+
+    <!-- Bottom Playback & Cutaway Dock -->
+    <footer id="bottom-bar" class="bottom-dock glass-panel">
+      <button id="btn-play" class="dock-btn" title="Play / Pause (Space)">⏸ Pause</button>
+      <button id="btn-speed" class="dock-btn" title="Cycle Simulation Speed">1.0× Speed</button>
+      <button id="btn-daycycle" class="dock-btn" title="Auto Time-of-Day Cycle">☀ Day Cycle: Off</button>
+      <button id="btn-xray" class="dock-btn" title="Toggle X-Ray Cutaway (X)">◎ X-Ray (X)</button>
+      <button id="btn-reset" class="dock-btn" title="Reset Camera (R)">⟲ Reset View</button>
+      <button id="btn-present" class="dock-btn primary-btn" title="Toggle Presentation Mode (H)">⛶ Present (H)</button>
+      <span class="shortcut-hint">Shortcuts: <b>1–6</b> Views · <b>X</b> X-Ray · <b>Space</b> Play · <b>H</b> Present · <b>Click 3D</b> Inspect</span>
+    </footer>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
