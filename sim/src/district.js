@@ -1839,7 +1839,7 @@ export function createDistrict(scene) {
     guidewayMat.emissiveIntensity = 0.65 + nightFactor * 0.75 + 0.12 * Math.sin(elapsed * 2.5);
 
     // Dirty-checked building instanceColor updates (zero string allocations, zero redundant GPU uploads)
-    const demandNorm = Math.min(1, Math.max(0, (sim.thermal.districtDemandMw - 1.45) / (9.52 - 1.45)));
+    const demandNorm = Math.min(1, Math.max(0, (sim.thermal.districtDemandMw - 3.01) / (9.52 - 3.01)));
     const demandBucket = heatmapVisible ? Math.round(demandNorm * 100) : -1;
     if (heatmapVisible !== lastHeatmapVisible || demandBucket !== lastDemandBucket) {
       lastHeatmapVisible = heatmapVisible;

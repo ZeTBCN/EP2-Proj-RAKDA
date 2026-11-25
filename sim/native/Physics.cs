@@ -107,6 +107,7 @@ namespace RakdaSim
         public double HeatCaptureEff;
         public double CapturedHeatMw;
         public double AnnualCapturedHeatMWh;
+        public double AnnualGrossCoveragePct;
         public double AnnualCoveragePct;
         public double PrimaryGrossFlowLmin;
         public double PrimaryGrossFlowLs;
@@ -117,14 +118,18 @@ namespace RakdaSim
         public double SecondaryNetHeatMw;
         public double SecondaryNetFlowLmin;
         public double DistrictDemandMw;
+        public double PipeLossMw;
+        public double TotalNetworkDemandMw;
         public double AnnualisedDemandMWh;
         public double NetThermalBalanceMw;
         public double SurplusMw;
         public double DeficitMw;
         public double ThermalStoreSoc;
         public double ThermalStoreEnergyMWh;
+        public double ThermalStoreUsableMWh;
         public double ThermalStoreChargeMw;
         public double ThermalStoreDischargeMw;
+        public double CommercialHeatSalesMw;
         public double TcesChargeMw;
         public double TiPtesChargeMw;
         public double TiPtesElectricEqMw;
@@ -137,6 +142,7 @@ namespace RakdaSim
         public double HthpElectricalMw;
         public double HthpCop;
         public bool ScenarioBActive;
+        public double ScenarioBElecMw;
         public double UnmetThermalDeficitMw;
         public double RingPumpingKw;
     }
@@ -178,18 +184,22 @@ namespace RakdaSim
         public double CapexDistrictM;
         public double CapexDcOperatorM;
         public double CapexCruPvBessM;
-        public double CounterfactualCapexM;
-        public double CapexSavingsM;
-        public double RevenueAnnualM;
-        public double OpexAnnualM;
+        public double ColocationRentEurKwMo;
+        public double ColocationRevenueM;
         public double EbitdaAnnualM;
-        public double Repex30YrM;
+        public double EbitdaUtilityM;
+        public double EbitdaDcM;
         public double SimplePaybackYr;
         public double IrrPct;
         public double Npv4PctM;
-        public double DiscountedPayback4PctYr;
         public double Npv8PctM;
-        public double DiscountedPayback8PctYr;
+        public double UtilityIrrPct;
+        public double UtilityPaybackYr;
+        public double UtilityLcohNetEurMwh;
+        public double TcoUsciM;
+        public double TcoGasM;
+        public double TcoAshpM;
+        public double BillUsciEurYr;
         public double AvoidedHeatingCo2TonYr;
         public double AvoidedPueCo2TonYr;
         public double AvoidedPueEnergyMWhYr;
@@ -199,8 +209,9 @@ namespace RakdaSim
     public sealed class SurveyStats
     {
         public int SampleSize;
+        public int RawSampleSize;
         public double DcComfortScore;
-        public double DcComfortPosNeutralPct;
+        public double DcComfortPosPct;
         public double RecycledWaterScore;
         public double RecycledWaterPosPct;
         public double PriorityCheapestBillPct;
@@ -260,7 +271,7 @@ namespace RakdaSim
     {
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-        // District constants (Draft 3.2)
+        // District constants (RAKDA USCI Nov 2026)
         public const double DistrictAreaHa = 180.0;
         public const int DistrictResidents = 20000;
         public const int DistrictHomes = 7500;
@@ -277,6 +288,7 @@ namespace RakdaSim
         public const double VaultCapacityMw = 2.0;
         public const double TotalItCapacityMw = 10.0;
         public const double VaultFootprintM2 = 350.0;
+        public const int VaultLifeYr = 100;
         public const double HoursPerYear = 8760.0;
         public const double Pue = 1.015;
         public const double CounterfactualPue = 1.56;
@@ -284,57 +296,63 @@ namespace RakdaSim
         public const double PvAnnualMWh = 10956.0;
         public const double BessPowerMw = 8.0;
         public const double BessEnergyMWh = 32.0;
-        public const double BufferPerVaultM3 = 43.4;
-        public const double BufferTotalM3 = 217.0;
+        public const double BufferPerVaultM3 = 43.0;
+        public const double BufferTotalM3 = 215.0;
         public const double BufferDtK = 10.0;
         public const double WaterMistDbMax = 110.0;
         public static readonly double[] VaultZoneWeights = new double[] { 0.24, 0.22, 0.20, 0.18, 0.16 };
 
-        // Thermal constants
+        // Thermal & EN 253 Network constants
         public const double PrimaryTempC = 75.0;
         public const double PrimaryDtK = 25.0;
         public const double PrimaryGrossShare = 0.80;
-        public const double PrimaryNominalGrossLmin = 4635.3;
-        public const double PrimaryNominalGrossLs = 77.26;
+        public const double PrimaryNominalGrossLs = 76.5;
+        public const double PrimaryNominalGrossLmin = 76.5 * 60.0;
         public const double SecondaryTempC = 45.0;
         public const double SecondaryDtK = 15.0;
         public const double SecondaryGrossShare = 0.20;
-        public const double SecondaryNominalGrossLmin = 1923.1;
-        public const double SecondaryNominalGrossLs = 32.05;
-        public const double AnnualDistrictDemandMWh = 37610.0;
-        public const double AnnualDistrictDemandExactMWh = 37612.0;
+        public const double SecondaryNominalGrossLs = 32.0;
+        public const double SecondaryNominalGrossLmin = 32.0 * 60.0;
+        public const double AnnualDistrictDemandMWh = 37612.0;
+        public const double AnnualDhwMWh = 26362.0;
+        public const double AnnualShMWh = 11250.0;
+        public const double DesignDayTempC = -3.0;
         public const double ColdSnapPeakMw = 9.52;
-        public const double SummerDhwBaselineMw = 1.45;
-        public const double BalanceTempC = 18.16;
-        public static readonly double SpaceHeatSlopeMwPerK = (9.52 - 1.45) / (18.16 - (-5.0));
+        public const double SummerDhwBaselineMw = 3.01;
+        public const double MeanTempC = 10.0;
+        public const double MeanDemandMw = AnnualDistrictDemandMWh / HoursPerYear;
+        public static readonly double SpaceHeatSlopeMwPerK = (ColdSnapPeakMw - MeanDemandMw) / (MeanTempC - DesignDayTempC);
+        public static readonly double BalanceTempC = MeanTempC + (MeanDemandMw - SummerDhwBaselineMw) / SpaceHeatSlopeMwPerK;
         public const double ThermalStoreM3 = 2500.0;
-        public const double ThermalStoreDtK = 30.0;
-        public const double ThermalStoreMWh = 87.08;
+        public const double ThermalStoreDtK = 35.0;
+        public const double ThermalStoreMWh = 101.6;
+        public const double ThermalStoreUsableMWh = 91.4;
         public const double HthpMaxMwTh = 8.0;
-        public const double HthpCopMin = 4.6;
-        public const double HthpCopMax = 6.9;
+        public const double HthpCopMin = 4.0;
+        public const double HthpCopMax = 6.0;
+        public const double ScenarioBExtraHthpMw = 8.5;
         public const double RingLengthKm = 30.0;
-        public const double RingLossWPerM = 7.0;
-        public const double RingLossMWhYr = 1840.0;
-        public const double PrimaryPumpingKw = 22.1;
-        public const double TcesCapacityMWhTh = 35.0;
-        public const double TiPtesPowerMwE = 2.0;
-        public const double TiPtesEnergyMWhE = 16.0;
-        public const double OrcMaxKwE = 440.0;
-        public const double OrcCeilingMWhYr = 2412.0;
-        public const double OrcPracticalMWhYr = 2000.0;
-        public const double SummerSurplusMWhTh = 30148.0;
+        public const double RingLossWPerM = 13.0;
+        public const double RingLossMWhYr = 3421.0;
+        public const double RingLossMw = 0.39;
+        public const double PrimaryPumpingKw = 21.9;
+        public const double PumpingAnnualMWhYr = 259.0;
+        public const double OrcMaxKwE = 420.0;
+        public const double SummerSurplusMWhTh = 44816.0;
 
         // Hydrology constants
         public const double DublinRainfallMmYr = 772.5;
         public const double RunoffCoeff = 0.80;
         public const double FiltrationEff = 0.90;
-        public const double CatchmentM2 = 120000.0;
+        public const double CatchmentM2 = 100000.0;
         public const double CisternCapacityM3 = 10000.0;
-        public const double DailyWaterDemandM3 = 160.0;
-        public const double AvoidedPotableWaterM3Yr = 166500.0;
-        public const double AvoidedPotableMinM3Yr = 158000.0;
-        public const double AvoidedPotableMaxM3Yr = 175000.0;
+        public const double CisternMinStorageM3 = 6700.0;
+        public const double DailyWaterDemandM3 = 152.0;
+        public const int DroughtReserveDays = 44;
+        public const double UpwMakeupMaxM3Yr = 3265.0;
+        public const double AvoidedPotableMinM3Yr = 157680.0;
+        public const double AvoidedPotableMaxM3Yr = 175200.0;
+        public const double AvoidedPotableWaterM3Yr = 166440.0;
         public const double UltrapureConductivityMaxUsCm = 1.0;
 
         // Optical constants
@@ -345,49 +363,54 @@ namespace RakdaSim
         public const double VaultToPodKm = 0.25;
         public const double VaultToPodNetRttUs = 3.17;
         public const double LocalE2eRttUs = 143.2;
-        public const double LocalE2eJitterUs = 2.0;
+        public const double LocalE2eJitterUs = 2.5;
         public const double CloudDistanceKm = 75.0;
         public const double CloudTransportRttMs = 7.64;
         public const double CloudControlLoopMs = 90.0;
         public const double PodSpeedKmh = 50.0;
         public const double LocalBreakoutPct = 87.34;
         public const double WanPowerSavedMWhYr = 455.0;
-        public const double SdnEfficiencyFactor = 74.9;
+        public const double SdnEfficiencyFactor = 70.1;
 
-        // Financial constants
-        public const double CapexTotalM = 137.08;
-        public const double CapexDistrictM = 57.73;
+        // Financial & Carbon constants (RAKDA USCI Nov 2026)
+        public const double CapexTotalM = 136.66;
+        public const double CapexDistrictM = 57.31;
         public const double CapexDcOperatorM = 79.35;
         public const double CapexCruPvBessM = 15.30;
-        public const double CounterfactualCapexM = 215.59;
-        public const double CapexSavingsM = 78.51;
-        public const double RevenueAnnualM = 34.20;
-        public const double OpexAnnualM = 12.00;
-        public const double EbitdaAnnualM = 22.20;
-        public const double Repex30YrM = 25.70;
-        public const double SimplePaybackYr = 6.2;
-        public const double IrrPct = 15.7;
-        public const double Npv4PctM = 232.98;
-        public const double DiscountedPayback4PctYr = 7.2;
-        public const double Npv8PctM = 105.07;
-        public const double DiscountedPayback8PctYr = 8.9;
-        public const double AvoidedHeatingCo2TonYr = 8020.0;
-        public const double AvoidedPueCo2TonYr = 15822.0;
+        public const double ColocationRentEurKwMo = 145.0;
+        public const double ColocationRevenueM = 17.40;
+        public const double EbitdaAnnualM = 19.60;
+        public const double EbitdaUtilityM = 3.64;
+        public const double EbitdaDcM = 15.97;
+        public const double SimplePaybackYr = 7.0;
+        public const double IrrPct = 13.7;
+        public const double Npv4PctM = 189.0;
+        public const double Npv8PctM = 77.0;
+        public const double UtilityIrrPct = 4.2;
+        public const double UtilityPaybackYr = 15.8;
+        public const double UtilityLcohNetEurMwh = 93.0;
+        public const double TcoUsciM = 520.0;
+        public const double TcoGasM = 826.0;
+        public const double TcoAshpM = 936.0;
+        public const double BillUsciEurYr = 536.0;
+        public const double AvoidedHeatingCo2TonYr = 7250.0;
+        public const double AvoidedPueCo2TonYr = 11240.0;
         public const double AvoidedPueEnergyMWhYr = 47742.0;
-        public const double TotalAvoidedCo2TonYr = 23842.0;
+        public const double TotalAvoidedCo2TonYr = 18490.0;
 
-        // Survey constants
+        // Survey constants (N = 105 cleaned / 109 raw)
         public static readonly SurveyStats SurveyData = new SurveyStats
         {
-            SampleSize = 109,
-            DcComfortScore = 3.19,
-            DcComfortPosNeutralPct = 64.8,
-            RecycledWaterScore = 3.86,
-            RecycledWaterPosPct = 72.0,
-            PriorityCheapestBillPct = 41.8,
-            PriorityReliabilityPct = 31.6,
-            PriorityCombinedPct = 73.5,
-            TopConcernNoiseVibrationPct = 33.7
+            SampleSize = 105,
+            RawSampleSize = 109,
+            DcComfortScore = 3.20,
+            DcComfortPosPct = 47.1,
+            RecycledWaterScore = 3.87,
+            RecycledWaterPosPct = 72.8,
+            PriorityCheapestBillPct = 42.6,
+            PriorityReliabilityPct = 33.0,
+            PriorityCombinedPct = 75.6,
+            TopConcernNoiseVibrationPct = 35.1
         };
 
         public static readonly ScenarioPreset[] ScenarioList;
@@ -419,7 +442,7 @@ namespace RakdaSim
                     Label = "Nominal 2045 Design",
                     ShortLabel = "Nominal 2045",
                     Badge = "100% IT · 10°C",
-                    Description = "Full 10.0 MW IT load at 98% capture, Dublin mean 10°C ambient, 228.3% annual heat coverage.",
+                    Description = "Full 10.0 MW IT load at 98% capture, Dublin mean 10°C ambient: 228% gross / 209% net coverage across 70/35°C EN 253 network (u_BE = 47.8%).",
                     Params = new SimState
                     {
                         ScenarioId = "nominal",
@@ -438,16 +461,16 @@ namespace RakdaSim
                 new ScenarioPreset
                 {
                     Id = "winter_cold_snap",
-                    Label = "Winter Cold Snap (−5°C)",
-                    ShortLabel = "Cold Snap −5°C",
-                    Badge = "100% IT · −5°C",
-                    Description = "Peak winter heating demand (9.52 MW_th) met directly by 9.80 MW_th captured waste heat (+0.28 MW_th surplus).",
+                    Label = "Winter Design Day (−3°C)",
+                    ShortLabel = "Design Day −3°C",
+                    Badge = "100% IT · −3°C",
+                    Description = "Peak −3°C design-day demand (9.52 MW_th + 0.39 MW_th EN 253 loss = 9.91 MW_th) vs 9.80 MW_th captured (−0.11 MW_th gap covered by 2,500 m³ store).",
                     Params = new SimState
                     {
                         ScenarioId = "winter_cold_snap",
                         Utilization = 1.0,
                         HeatCaptureEff = 0.98,
-                        AmbientTempC = -5.0,
+                        AmbientTempC = -3.0,
                         RainfallMultiplier = 1.2,
                         CisternSoc = 0.90,
                         ThermalStoreSoc = 0.85,
@@ -460,16 +483,16 @@ namespace RakdaSim
                 new ScenarioPreset
                 {
                     Id = "winter_stress_60",
-                    Label = "Cold Snap + 60% Stress",
-                    ShortLabel = "60% Stress −5°C",
-                    Badge = "60% IT · HTHP On",
-                    Description = "Severe winter −5°C with DC throttled to 60% (5.88 MW_th). 2,500 m³ thermal store + 8.0 MW_th HTHP cover −3.64 MW_th deficit.",
+                    Label = "Cautious Winter (−3°C)",
+                    ShortLabel = "Cautious −3°C",
+                    Badge = "u=0.70 · HTHP On",
+                    Description = "Cautious winter −3°C (u=0.70, f_cap=0.80 → 5.60 MW_th vs 9.91 MW_th peak): 4.31 MW_th gap met by 2,500 m³ store (91.4 MWh usable) + 8.0 MW_th HTHP (48 h).",
                     Params = new SimState
                     {
                         ScenarioId = "winter_stress_60",
-                        Utilization = 0.60,
-                        HeatCaptureEff = 0.98,
-                        AmbientTempC = -5.0,
+                        Utilization = 0.70,
+                        HeatCaptureEff = 0.80,
+                        AmbientTempC = -3.0,
                         RainfallMultiplier = 1.1,
                         CisternSoc = 0.88,
                         ThermalStoreSoc = 0.80,
@@ -485,7 +508,7 @@ namespace RakdaSim
                     Label = "Vault 3 Fault + SDN Reroute",
                     ShortLabel = "Vault 3 Fault",
                     Badge = "V3 Fault · SDN",
-                    Description = "Vault 3 offline. Optical NANF HCF ring reroutes V2X traffic and SDN shifts 8.0 MW IT load across healthy vaults (74.9× vs pumping).",
+                    Description = "Vault 3 offline. Optical NANF HCF ring reroutes V2X traffic (143.2 μs) and SDN shifts 8.0 MW IT load across healthy vaults (70.1× vs EN 253 pumping).",
                     Params = new SimState
                     {
                         ScenarioId = "vault_fault_sdn",
@@ -504,10 +527,10 @@ namespace RakdaSim
                 new ScenarioPreset
                 {
                     Id = "summer_exergy",
-                    Label = "Summer Exergy Cascade",
-                    ShortLabel = "Summer Exergy",
-                    Badge = "24°C · ORC + TCES",
-                    Description = "Low DHW baseline (1.45 MW_th) leaves 8.35 MW_th surplus routed to SrBr₂ TCES, TI-PTES Carnot battery, ~422 kW_e micro-ORC, and MOF chillers.",
+                    Label = "Summer Surplus Cascade",
+                    ShortLabel = "Summer Cascade",
+                    Badge = "24°C · 0.4 MW ORC",
+                    Description = "Steady DHW baseload (3.01 MW_th + 0.39 MW_th loss) leaves 6.40 MW_th surplus routed to 75°C commercial sales, ~0.4 MW_e Micro-ORC (7.2–8.3% eff.), and dry coolers.",
                     Params = new SimState
                     {
                         ScenarioId = "summer_exergy",
@@ -526,10 +549,10 @@ namespace RakdaSim
                 new ScenarioPreset
                 {
                     Id = "dublin_drought",
-                    Label = "Dublin 60-Day Drought",
+                    Label = "Dublin 44-Day Drought",
                     ShortLabel = "Dublin Drought",
-                    Badge = "0× Rain · Cistern",
-                    Description = "Zero rainfall input; closed-loop microfluidic cooling & 10,000 m³ RC drought cistern sustain operations for 45–66 dry days.",
+                    Badge = "0× Rain · 6,700 m³",
+                    Description = "Zero rainfall input; 10,000 m³ RC drought cistern (6,700 m³ min storage = 44-day reserve at 152 m³/d) & sealed Grade A UPW loop avoid 157.7–175.2k m³/yr.",
                     Params = new SimState
                     {
                         ScenarioId = "dublin_drought",
@@ -537,7 +560,7 @@ namespace RakdaSim
                         HeatCaptureEff = 0.98,
                         AmbientTempC = 21.0,
                         RainfallMultiplier = 0.0,
-                        CisternSoc = 0.42,
+                        CisternSoc = 0.67,
                         ThermalStoreSoc = 0.85,
                         SdnEnabled = true,
                         VaultFaults = new bool[] { false, false, false, false, false },
@@ -548,10 +571,10 @@ namespace RakdaSim
                 new ScenarioPreset
                 {
                     Id = "conservative_stress",
-                    Label = "Conservative (u=0.70, f=0.80)",
-                    ShortLabel = "Conservative",
+                    Label = "Cautious (u=0.70, f=0.80)",
+                    ShortLabel = "Cautious Base",
                     Badge = "u=0.70 · f=0.80",
-                    Description = "Conservative stress margin: 70% IT load and 80% heat capture yield 49,056 MWh_th/yr (130.4% of 37,610 MWh_th/yr district demand).",
+                    Description = "Cautious annual case: 70% IT load and 80% capture yield 49,056 MWh_th/yr (130% gross / 120% net of 37,612 MWh/yr + 3,421 MWh loss; u_BE = 58.6%).",
                     Params = new SimState
                     {
                         ScenarioId = "conservative_stress",
@@ -608,7 +631,7 @@ namespace RakdaSim
         public static double ComputeHthpCop(double ambientTempC)
         {
             double t = Clamp(IsFinite(ambientTempC) ? ambientTempC : 10.0, -5.0, 25.0);
-            double ratio = (t + 5.0) / 30.0;
+            double ratio = (t + 3.0) / 28.0;
             return Clamp(HthpCopMin + ratio * (HthpCopMax - HthpCopMin), HthpCopMin, HthpCopMax);
         }
 
@@ -798,31 +821,37 @@ namespace RakdaSim
                 bessMode = "Discharging (Peak Shave)";
             }
 
-            // 3. Thermal & Hydraulic Flows
+            // 3. Thermal & EN 253 Network Hydraulic Flows
             double capturedHeatMw = totalItMw * s.HeatCaptureEff;
             double annualCapturedHeatMWh = capturedHeatMw * HoursPerYear;
-            double annualCoveragePct = (annualCapturedHeatMWh / AnnualDistrictDemandMWh) * 100.0;
+            double annualGrossCoveragePct = (annualCapturedHeatMWh / AnnualDistrictDemandMWh) * 100.0;
+            double annualNetDemandMWh = AnnualDistrictDemandMWh + RingLossMWhYr;
+            double annualCoveragePct = (annualCapturedHeatMWh / annualNetDemandMWh) * 100.0;
 
-            double primaryGrossFlowLmin = PrimaryNominalGrossLmin * loadRatio;
-            double primaryGrossFlowLs = primaryGrossFlowLmin / 60.0;
+            double primaryGrossFlowLs = PrimaryNominalGrossLs * loadRatio;
+            double primaryGrossFlowLmin = primaryGrossFlowLs * 60.0;
             double primaryNetHeatMw = capturedHeatMw * PrimaryGrossShare;
             double primaryNetFlowLmin = primaryGrossFlowLmin * s.HeatCaptureEff;
 
-            double secondaryGrossFlowLmin = SecondaryNominalGrossLmin * loadRatio;
-            double secondaryGrossFlowLs = secondaryGrossFlowLmin / 60.0;
+            double secondaryGrossFlowLs = SecondaryNominalGrossLs * loadRatio;
+            double secondaryGrossFlowLmin = secondaryGrossFlowLs * 60.0;
             double secondaryNetHeatMw = capturedHeatMw * SecondaryGrossShare;
             double secondaryNetFlowLmin = secondaryGrossFlowLmin * s.HeatCaptureEff;
 
             double districtDemandMw = ComputeDistrictDemandMw(s.AmbientTempC);
+            double pipeLossMw = RingLossMw;
+            double totalNetworkDemandMw = districtDemandMw + pipeLossMw;
             double annualisedDemandMWh = districtDemandMw * HoursPerYear;
-            double netThermalBalanceMw = capturedHeatMw - districtDemandMw;
-            double ringPumpingKw = PrimaryPumpingKw * loadRatio * (s.SdnEnabled ? 1.0 : 1.45);
+            double netThermalBalanceMw = capturedHeatMw - totalNetworkDemandMw;
+            double basePumpingKw = PumpingAnnualMWhYr * 1000.0 / HoursPerYear;
+            double ringPumpingKw = basePumpingKw * loadRatio * (s.SdnEnabled ? 1.0 : 1.45);
 
-            // 4. Surplus Exergy Cascade vs Cold-Snap Deficit Coverage
+            // 4. Canonical 3-Tier Surplus Cascade vs Cold-Snap / Scenario B Deficit Coverage
             double surplusMw = 0.0;
             double deficitMw = 0.0;
             double thermalStoreChargeMw = 0.0;
             double thermalStoreDischargeMw = 0.0;
+            double commercialHeatSalesMw = 0.0;
             double tcesChargeMw = 0.0;
             double tiPtesChargeMw = 0.0;
             double tiPtesElectricEqMw = 0.0;
@@ -839,32 +868,33 @@ namespace RakdaSim
             if (netThermalBalanceMw >= 0.0)
             {
                 surplusMw = netThermalBalanceMw;
-                thermalStoreChargeMw = s.ThermalStoreSoc < 0.95 ? Math.Min(surplusMw, 1.0) : 0.0;
+                thermalStoreChargeMw = s.ThermalStoreSoc < 0.95 ? Math.Min(surplusMw, 0.80) : 0.0;
                 double rem1 = surplusMw - thermalStoreChargeMw;
-                tcesChargeMw = Math.Min(rem1, 1.20);
-                double rem2 = rem1 - tcesChargeMw;
-                tiPtesChargeMw = Math.Min(rem2, 2.00);
-                tiPtesElectricEqMw = Math.Min(TiPtesPowerMwE, tiPtesChargeMw * 0.70);
-                double rem3 = rem2 - tiPtesChargeMw;
-                orcThermalInputMw = Math.Min(rem3 * 0.78, 4.19);
-                orcOutputKw = Math.Min(OrcMaxKwE, orcThermalInputMw * 1000.0 * 0.105);
-                double rem4 = rem3 - orcThermalInputMw;
-                mofChillerMw = s.AmbientTempC > 18.0 ? Math.Min(rem4, 0.85) : 0.0;
-                mofCoolingMw = mofChillerMw * 0.72;
-                dryCoolerRejectionMw = Math.Max(0.0, rem4 - mofChillerMw);
+                commercialHeatSalesMw = Math.Min(rem1 * 0.25, 1.40);
+                double rem2 = rem1 - commercialHeatSalesMw;
+                orcThermalInputMw = Math.Min(rem2 * 0.80, 5.10);
+                orcOutputKw = Math.Min(OrcMaxKwE, orcThermalInputMw * 1000.0 * 0.078);
+                dryCoolerRejectionMw = Math.Max(0.0, rem2 - orcThermalInputMw);
             }
             else
             {
                 deficitMw = -netThermalBalanceMw;
-                thermalStoreDischargeMw = s.ThermalStoreSoc > 0.05 ? Math.Min(deficitMw * 0.45, 4.0) : 0.0;
+                thermalStoreDischargeMw = s.ThermalStoreSoc > 0.05 ? Math.Min(deficitMw, 4.0) : 0.0;
                 hthpThermalOutputMw = Math.Min(HthpMaxMwTh, Math.Max(0.0, deficitMw - thermalStoreDischargeMw));
                 hthpElectricalMw = hthpThermalOutputMw / hthpCop;
                 unmetThermalDeficitMw = Math.Max(0.0, deficitMw - thermalStoreDischargeMw - hthpThermalOutputMw);
             }
 
+            double scenarioBElecMw = 0.0;
+            if (s.HthpScenarioB && capturedHeatMw > 0.0)
+            {
+                double boostHeatMw = Math.Min(ScenarioBExtraHthpMw, totalNetworkDemandMw);
+                scenarioBElecMw = boostHeatMw / hthpCop;
+            }
+
             double netGridDrawMw = Math.Max(
                 0.0,
-                grossFacilityMw + hthpElectricalMw + ringPumpingKw / 1000.0 - pvOutputMw - orcOutputKw / 1000.0 - bessDischargeMw + bessChargeMw
+                grossFacilityMw + hthpElectricalMw + scenarioBElecMw + ringPumpingKw / 1000.0 - pvOutputMw - orcOutputKw / 1000.0 - bessDischargeMw + bessChargeMw
             );
 
             // 5. Hydrological Loop
@@ -888,8 +918,8 @@ namespace RakdaSim
             double wanPowerSavedMWhYr = WanPowerSavedMWhYr * loadRatio;
 
             // 7. Carbon & Financials
-            double avoidedHeatingCo2TonYr =
-                AvoidedHeatingCo2TonYr * Math.Min(1.0, annualCapturedHeatMWh / AnnualDistrictDemandMWh);
+            double heatShare = Math.Min(1.0, annualCapturedHeatMWh / annualNetDemandMWh);
+            double avoidedHeatingCo2TonYr = AvoidedHeatingCo2TonYr * heatShare;
             double avoidedPueCo2TonYr = AvoidedPueCo2TonYr * loadRatio;
             double totalAvoidedCo2TonYr = avoidedHeatingCo2TonYr + avoidedPueCo2TonYr;
 
@@ -919,6 +949,7 @@ namespace RakdaSim
                     HeatCaptureEff = s.HeatCaptureEff,
                     CapturedHeatMw = capturedHeatMw,
                     AnnualCapturedHeatMWh = annualCapturedHeatMWh,
+                    AnnualGrossCoveragePct = annualGrossCoveragePct,
                     AnnualCoveragePct = annualCoveragePct,
                     PrimaryGrossFlowLmin = primaryGrossFlowLmin,
                     PrimaryGrossFlowLs = primaryGrossFlowLs,
@@ -929,14 +960,18 @@ namespace RakdaSim
                     SecondaryNetHeatMw = secondaryNetHeatMw,
                     SecondaryNetFlowLmin = secondaryNetFlowLmin,
                     DistrictDemandMw = districtDemandMw,
+                    PipeLossMw = pipeLossMw,
+                    TotalNetworkDemandMw = totalNetworkDemandMw,
                     AnnualisedDemandMWh = annualisedDemandMWh,
                     NetThermalBalanceMw = netThermalBalanceMw,
                     SurplusMw = surplusMw,
                     DeficitMw = deficitMw,
                     ThermalStoreSoc = s.ThermalStoreSoc,
                     ThermalStoreEnergyMWh = ThermalStoreMWh * s.ThermalStoreSoc,
+                    ThermalStoreUsableMWh = ThermalStoreUsableMWh * s.ThermalStoreSoc,
                     ThermalStoreChargeMw = thermalStoreChargeMw,
                     ThermalStoreDischargeMw = thermalStoreDischargeMw,
+                    CommercialHeatSalesMw = commercialHeatSalesMw,
                     TcesChargeMw = tcesChargeMw,
                     TiPtesChargeMw = tiPtesChargeMw,
                     TiPtesElectricEqMw = tiPtesElectricEqMw,
@@ -949,6 +984,7 @@ namespace RakdaSim
                     HthpElectricalMw = hthpElectricalMw,
                     HthpCop = hthpCop,
                     ScenarioBActive = s.HthpScenarioB,
+                    ScenarioBElecMw = scenarioBElecMw,
                     UnmetThermalDeficitMw = unmetThermalDeficitMw,
                     RingPumpingKw = ringPumpingKw
                 },
@@ -987,18 +1023,22 @@ namespace RakdaSim
                     CapexDistrictM = CapexDistrictM,
                     CapexDcOperatorM = CapexDcOperatorM,
                     CapexCruPvBessM = CapexCruPvBessM,
-                    CounterfactualCapexM = CounterfactualCapexM,
-                    CapexSavingsM = CapexSavingsM,
-                    RevenueAnnualM = RevenueAnnualM,
-                    OpexAnnualM = OpexAnnualM,
+                    ColocationRentEurKwMo = ColocationRentEurKwMo,
+                    ColocationRevenueM = ColocationRevenueM,
                     EbitdaAnnualM = EbitdaAnnualM,
-                    Repex30YrM = Repex30YrM,
+                    EbitdaUtilityM = EbitdaUtilityM,
+                    EbitdaDcM = EbitdaDcM,
                     SimplePaybackYr = SimplePaybackYr,
                     IrrPct = IrrPct,
                     Npv4PctM = Npv4PctM,
-                    DiscountedPayback4PctYr = DiscountedPayback4PctYr,
                     Npv8PctM = Npv8PctM,
-                    DiscountedPayback8PctYr = DiscountedPayback8PctYr,
+                    UtilityIrrPct = UtilityIrrPct,
+                    UtilityPaybackYr = UtilityPaybackYr,
+                    UtilityLcohNetEurMwh = UtilityLcohNetEurMwh,
+                    TcoUsciM = TcoUsciM,
+                    TcoGasM = TcoGasM,
+                    TcoAshpM = TcoAshpM,
+                    BillUsciEurYr = BillUsciEurYr,
                     AvoidedHeatingCo2TonYr = avoidedHeatingCo2TonYr,
                     AvoidedPueCo2TonYr = avoidedPueCo2TonYr,
                     AvoidedPueEnergyMWhYr = AvoidedPueEnergyMWhYr,
@@ -1043,11 +1083,11 @@ namespace RakdaSim
                 key,
                 Fmt("Subterranean AI Vault {0} (2.0 MW)", idx + 1),
                 "Level −4 Bedrock · Data Centre",
-                "Reinforced-concrete vault at Level −4 bedrock beneath public plazas. Isolated by floating acoustic slabs, 1.0 m perimeter vibration trenches, and <110 dB low-noise water-mist suppression.",
+                "Reinforced-concrete vault (25 × 16 m, 100-yr EN 1990 life) at Level −4 bedrock beneath public plazas. Isolated by floating acoustic slabs, 1.0 m perimeter vibration trenches, and <110 dB water-mist suppression.",
                 new string[]
                 {
-                    "2.0 MW IT capacity · 800 VDC SSTs + HTS busways (−98% Cu)",
-                    "43.4 m³ 15-min thermal buffer tank (ΔT = 10 K)",
+                    "2.0 MW IT capacity · 800 VDC SSTs (−5% loss; HTS busways optional)",
+                    "43 m³ 15-min thermal buffer tank (ΔT = 10 K · 215 m³ district total)",
                     "In-silicon microfluidic cooling: 75°C primary / 45°C secondary",
                     "1.00 km NANF Hollow-Core Fiber ring hop (8.16 μs RTT)"
                 },
@@ -1059,7 +1099,7 @@ namespace RakdaSim
                         Kv("Status", v.Faulted ? "FAULTED (OFFLINE)" : "ONLINE (NOMINAL)"),
                         Kv("IT Load", Fmt("{0:F2} / 2.00 MW ({1:F0}%)", v.ItMw, v.LoadPct)),
                         Kv("Captured Heat", Fmt("{0:F2} MW_th", v.HeatMw)),
-                        Kv("75°C Primary Flow", Fmt("{0:F1} L/min", v.FlowPrimaryLmin)),
+                        Kv("75°C Primary Flow", Fmt("{0:F2} L/s ({1:F0} L/min)", v.FlowPrimaryLmin / 60.0, v.FlowPrimaryLmin)),
                         Kv("Zone Thermal Weight", Fmt("{0:F0}%", v.ZoneWeight * 100.0))
                     };
                 }
@@ -1078,20 +1118,20 @@ namespace RakdaSim
 
             map["thermal_store"] = new SubsystemInfo(
                 "thermal_store",
-                "2,500 m³ Diurnal / Cold-Snap Thermal Store",
+                "2,500 m³ Stratified Pressurised Thermal Store",
                 "Loop 2 · Thermal Buffering",
-                "Insulated stratified water tank (ΔT = 30 K, ~87.1 MWh_th) buffering diurnal demand swings and winter cold-snap deficits alongside the 8.0 MW_th HTHP bank.",
+                "Insulated stratified water tank (ΔT = 35 K, 101.6 MWh_th gross / 91.4 MWh_th usable) sustaining average winter demand for 15 h with zero DC heat and 48 h alongside the 8.0 MW_th backup HTHPs.",
                 new string[]
                 {
-                    "Volume: 2,500 m³ insulated steel/RC tank",
-                    "Storage capacity: ~87.08 MWh_th across ΔT = 30 K",
-                    "Discharges up to 4.0 MW_th during cold-snap deficits"
+                    "Volume: 2,500 m³ insulated steel/RC tank (100-yr civil life)",
+                    "Capacity: 101.6 MWh_th gross / 91.4 MWh_th usable (ΔT = 35 K)",
+                    "15 h winter carry standalone · 48 h peak resilience w/ 8.0 MW HTHP"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
-                        Kv("State of Charge", Fmt("{0:F0}% ({1:F1} MWh_th)", sim.Thermal.ThermalStoreSoc * 100.0, sim.Thermal.ThermalStoreEnergyMWh)),
+                        Kv("State of Charge", Fmt("{0:F0}% ({1:F1} / 91.4 MWh usable)", sim.Thermal.ThermalStoreSoc * 100.0, sim.Thermal.ThermalStoreUsableMWh)),
                         Kv("Charge Rate", Fmt("{0:F2} MW_th", sim.Thermal.ThermalStoreChargeMw)),
                         Kv("Discharge Rate", Fmt("{0:F2} MW_th", sim.Thermal.ThermalStoreDischargeMw))
                     };
@@ -1102,42 +1142,40 @@ namespace RakdaSim
                 "hthp_bank",
                 "8.0 MW_th Natural-Refrigerant Backup HTHP Bank",
                 "Loop 2 · Peaking & Scenario B",
-                "High-temperature heat pumps (Scenario B fallback: upgrades 45°C secondary water to 70°C supply at COP 4.6–6.9) covering cold-snap stress deficits.",
+                "High-temperature heat pumps covering cautious −3°C cold-snap deficits (−4.31 MW_th) and Scenario B fallback (40°C → 75°C condensing at COP 4.0–6.0; ~8.5 MW / €5.1M for full boost, +€33/MWh).",
                 new string[]
                 {
                     "Rated thermal output: 8.0 MW_th (natural refrigerant)",
-                    "Operating COP band: 4.6 – 6.9",
-                    "Covers −3.64 MW_th deficit at −5°C & 60% DC load"
+                    "Scenario B COP band: 4.0 – 6.0 (5.9–8.8 GWh_e/yr, LCOH → €126/MWh)",
+                    "Covers −4.31 MW_th cautious deficit at −3°C & 48 h outage resilience"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
                         Kv("Thermal Output", Fmt("{0:F2} MW_th", sim.Thermal.HthpThermalOutputMw)),
-                        Kv("Electrical Draw", Fmt("{0:F2} MW_e", sim.Thermal.HthpElectricalMw)),
+                        Kv("Electrical Draw", Fmt("{0:F2} MW_e", sim.Thermal.HthpElectricalMw + sim.Thermal.ScenarioBElecMw)),
                         Kv("Operating COP", Fmt("{0:F2}", sim.Thermal.HthpCop)),
-                        Kv("Scenario B Fallback", sim.Thermal.ScenarioBActive ? "Armed (45°C → 70°C)" : "Standby")
+                        Kv("Scenario B Fallback", sim.Thermal.ScenarioBActive ? "Armed (40°C → 75°C, +€33/MWh)" : "Standby")
                     };
                 }
             );
 
             map["tces"] = new SubsystemInfo(
                 "tces",
-                "SrBr₂ / K₂CO₃ Thermochemical Energy Storage (TCES)",
-                "Exergy-Priority Cascade",
-                "Lossless salt-hydrate thermochemical bed storing summer surplus heat (~35 MWh_th) at high energy density without seasonal standby losses.",
+                "Optional R&D Pad — SrBr₂ / K₂CO₃ TCES (Excluded from Base)",
+                "Optional R&D · Not in Base CapEx",
+                "Thermochemical energy storage was evaluated during early concept work and excluded from the canonical RAKDA-USCI base CapEx and 3-tier surplus cascade.",
                 new string[]
                 {
-                    "Chemistry: SrBr₂ / K₂CO₃ reversible hydration",
-                    "Capacity: ~35 MWh_th",
-                    "Priority tier #2 in summer surplus exergy cascade"
+                    "Status: Excluded from €136.66M base CapEx & LCOH model",
+                    "Replaced by direct 70–75°C commercial sales + 0.4 MW_e Micro-ORC + Dry Coolers"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
-                        Kv("Active Charging", Fmt("{0:F2} MW_th", sim.Thermal.TcesChargeMw)),
-                        Kv("Nominal Capacity", "35.0 MWh_th"),
+                        Kv("Base Cascade Allocation", "0.00 MW_th (Excluded from base scope)"),
                         Kv("Total Surplus Available", Fmt("{0:F2} MW_th", sim.Thermal.SurplusMw))
                     };
                 }
@@ -1145,82 +1183,81 @@ namespace RakdaSim
 
             map["ti_ptes"] = new SubsystemInfo(
                 "ti_ptes",
-                "2 MW_e / 16 MWh_e TI-PTES Carnot Battery",
-                "Exergy-Priority Cascade · Grid Arbitrage",
-                "Thermally-Integrated Pumped Thermal Energy Storage coupling waste heat with wind/grid electricity arbitrage for 8-hour dispatch.",
+                "Optional R&D Pad — TI-PTES Carnot Battery (Excluded from Base)",
+                "Optional R&D · Not in Base CapEx",
+                "Thermally-Integrated Pumped Thermal Energy Storage is excluded from the canonical RAKDA-USCI base CapEx and 3-tier surplus cascade (future R&D option only).",
                 new string[]
                 {
-                    "Power / Energy: 2.0 MW_e / 16.0 MWh_e",
-                    "Couples 75°C DC waste heat into Carnot compression cycle"
+                    "Status: Excluded from €136.66M base CapEx & DCF model",
+                    "Active grid firming delivered by 8 MW / 32 MWh LFP BESS"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
-                        Kv("Thermal Input", Fmt("{0:F2} MW_th", sim.Thermal.TiPtesChargeMw)),
-                        Kv("Electric Storage Eq.", Fmt("{0:F2} MW_e", sim.Thermal.TiPtesElectricEqMw)),
-                        Kv("Rated Capacity", "2.0 MW_e / 16.0 MWh_e")
+                        Kv("Base Cascade Allocation", "0.00 MW_th (Excluded from base scope)"),
+                        Kv("Active BESS Mode", sim.Electrical.BessMode)
                     };
                 }
             );
 
             map["micro_orc"] = new SubsystemInfo(
                 "micro_orc",
-                "Summer Residual Micro-ORC Skid (≤ 440 kW_e)",
-                "Exergy-Priority Cascade · Power Recovery",
-                "Organic Rankine Cycle turbine converting summer residual 75°C thermal surplus into clean on-site electricity (~420 kW_e peak, ≤ 2,412 MWh_e/yr ceiling).",
+                "Summer Residual Micro-ORC Skid (~0.4 MW_e)",
+                "Exergy Cascade Tier 2 · Power Recovery",
+                "PFAS-free Organic Rankine Cycle turbine converting 75°C summer surplus (17.2% Carnot ceiling @ 15°C sink → 7.2–8.3% η_ORC) into 2.60–2.97 GWh_e/yr (~0.4 MW_e, €0.35M/yr / +€3.5M utility NPV).",
                 new string[]
                 {
-                    "Nominal summer output: ~418–440 kW_e (hard cap 440 kW_e)",
-                    "Annual ceiling: 2,412 MWh_e/yr (~2,000 MWh_e/yr practical)"
+                    "Carnot ceiling: 17.2% (75°C vs 15°C sink) → 7.2–8.3% η_ORC",
+                    "Output: ~0.4 MW_e (2.60–2.97 GWh_e/yr · €0.35M/yr revenue)"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
-                        Kv("Thermal Input", Fmt("{0:F2} MW_th", sim.Thermal.OrcThermalInputMw)),
+                        Kv("Thermal Input (75°C)", Fmt("{0:F2} MW_th", sim.Thermal.OrcThermalInputMw)),
                         Kv("Electrical Generation", Fmt("{0:F1} kW_e", sim.Thermal.OrcOutputKw)),
-                        Kv("Hard Ceiling", "440.0 kW_e")
+                        Kv("Commercial Heat Sales", Fmt("{0:F2} MW_th", sim.Thermal.CommercialHeatSalesMw))
                     };
                 }
             );
 
             map["mof_chiller"] = new SubsystemInfo(
                 "mof_chiller",
-                "MOF Adsorption Chillers",
-                "Exergy-Priority Cascade · Cooling",
-                "Metal-Organic Framework adsorption chillers thermally driven by residual 75°C waste heat during warm summer afternoons (>18°C).",
+                "Tier 1 Commercial Heat & Optional Adsorption Cooling",
+                "Exergy Cascade Tier 1 · 75°C Direct Sales",
+                "Direct 70–75°C heat sales to local commercial buyers (pools, laundries, greenhouses, thermally driven adsorption chillers) delivering 1.8×–12.5× ORC value.",
                 new string[]
                 {
-                    "Thermally driven cooling from 75°C surplus stream",
-                    "Zero vapour-compression HFC refrigerants"
+                    "Priority Tier #1 of 44,816 MWh/yr summer surplus (35,852 MWh @ 75°C)",
+                    "Direct heat value ~€95/MWh vs ~€10/MWh thermal input for ORC"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
-                        Kv("Heat Driven Input", Fmt("{0:F2} MW_th", sim.Thermal.MofChillerMw)),
-                        Kv("Chilled Output", Fmt("{0:F2} MW_th", sim.Thermal.MofCoolingMw))
+                        Kv("Tier 1 Commercial Sales", Fmt("{0:F2} MW_th", sim.Thermal.CommercialHeatSalesMw)),
+                        Kv("Total Surplus Stream", Fmt("{0:F2} MW_th", sim.Thermal.SurplusMw))
                     };
                 }
             );
 
             map["dry_coolers"] = new SubsystemInfo(
                 "dry_coolers",
-                "N+1 Low-Noise Dry Coolers",
-                "Heat Rejection Backup",
-                "Zero-water adiabatic/dry heat rejection bank handling residual surplus after all exergy cascade stages are saturated—eliminating cooling-tower water loss.",
+                "N+1 Low-Noise Dry Coolers (Cascade Tier 3)",
+                "Exergy Cascade Tier 3 · Heat Rejection",
+                "Zero-water adiabatic/dry heat rejection bank at the energy centre ensuring server uptime never depends on summer heat demand—saving 157,680–175,200 m³/yr of potable tower water.",
                 new string[]
                 {
-                    "Zero evaporative water consumption (saves 166,500 m³/yr)",
-                    "N+1 redundancy with acoustic shrouding"
+                    "Zero evaporative water consumption (saves 157,680–175,200 m³/yr)",
+                    "N+1 redundancy with remote acoustic shrouding at energy centre"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
                         Kv("Heat Rejected", Fmt("{0:F2} MW_th", sim.Thermal.DryCoolerRejectionMw)),
-                        Kv("Avoided Potable Water", Fmt("{0:N0} m³/yr", sim.Hydrology.AvoidedPotableWaterM3Yr))
+                        Kv("Avoided Cooling Water", "157,680–175,200 m³/yr")
                     };
                 }
             );
@@ -1229,19 +1266,19 @@ namespace RakdaSim
                 "rainwater_cistern",
                 "10,000 m³ Subterranean RC Drought Cistern",
                 "Loop 3 · Hydrological Resilience",
-                "Reinforced-concrete cistern capturing runoff from 120,000 m² of inert district roofs (Dublin 772.5 mm/yr, C_r=0.80, η_f=0.90), sized for 45–66 day dry spells.",
+                "Reinforced-concrete cistern capturing runoff from 10 ha (100,000 m²) inert roofs (772.5 mm/yr, C_r=0.80, η_f=0.90 → 55,620 m³/yr, 152 m³/d), keeping ≥6,700 m³ (44-day drought reserve).",
                 new string[]
                 {
-                    "Capacity: 10,000 m³ (62.5 days autonomy at 160 m³/day)",
-                    "Catchment: 120,000 m² inert roofs (55,620 m³/yr per 100k m²)",
-                    "Resident survey recycled-water support: 3.86/5.00 (72.0% pos)"
+                    "Capacity: 10,000 m³ (6,700 m³ min across 3,318 m³ swing = 44 d reserve)",
+                    "Water grades: Grade A UPW (≤3,265 m³/yr), Grade B toilets/laundry, Grade C parks",
+                    "Survey (N=105): 3.87/5.00 recycled water score (72.8% comfortable)"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
                         Kv("Cistern Volume", Fmt("{0:F0} / 10,000 m³ ({1:F0}%)", sim.Hydrology.CisternVolumeM3, sim.Hydrology.CisternSoc * 100.0)),
-                        Kv("Drought Autonomy", Fmt("{0:F1} days (Full: {1:F1} d)", sim.Hydrology.DroughtAutonomyDays, sim.Hydrology.FullTankAutonomyDays)),
+                        Kv("Drought Reserve", Fmt("{0:F1} days @ 152 m³/d", sim.Hydrology.DroughtAutonomyDays)),
                         Kv("Annual Rain Harvest", Fmt("{0:F0} m³/yr", sim.Hydrology.AnnualRainHarvestM3))
                     };
                 }
@@ -1249,21 +1286,21 @@ namespace RakdaSim
 
             map["ultrapure_train"] = new SubsystemInfo(
                 "ultrapure_train",
-                "Semiconductor Grade C Ultrapure Water Train",
+                "Grade A Semiconductor Ultrapure Water (UPW) Train",
                 "Loop 3 · Microfluidic Polish",
-                "Closed-loop UF + MCDI/2D + DI + UV-C LED + BDD/Ti₄O₇ PFAS mineralisation train supplying ultra-pure coolant to in-silicon microchannels.",
+                "Closed-loop Grade A UPW makeup train (≤3,265 m³/yr, <5.9% of harvested yield): dead-end UF + MCDI + mixed-bed DI + UV-C LED + BDD/Ti₄O₇ PFAS oxidation, isolated by EN 1717 physical air-gaps.",
                 new string[]
                 {
-                    "Conductivity ≤ 1.0 μS/cm · Resistivity 1–18.2 MΩ·cm",
-                    "BDD/Ti₄O₇ electrochemical PFAS destruction + UV-C LED"
+                    "Grade A = UPW (≤1.0 μS/cm, 1–18.2 MΩ·cm, ≤0.2–1.0 μm, ≤1 ppm SiO₂)",
+                    "Grade B = toilets & laundry (no dishwashers) · Grade C = park irrigation"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
-                        Kv("Primary 75°C Loop Flow", Fmt("{0:F1} L/min", sim.Thermal.PrimaryGrossFlowLmin)),
-                        Kv("Secondary 45°C Flow", Fmt("{0:F1} L/min", sim.Thermal.SecondaryGrossFlowLmin)),
-                        Kv("Target Quality", "≤ 1.0 μS/cm · 1–18.2 MΩ·cm")
+                        Kv("Primary 75°C Flow", Fmt("{0:F1} L/s ({1:F0} L/min)", sim.Thermal.PrimaryGrossFlowLs, sim.Thermal.PrimaryGrossFlowLmin)),
+                        Kv("Secondary 45°C Flow", Fmt("{0:F1} L/s ({1:F0} L/min)", sim.Thermal.SecondaryGrossFlowLs, sim.Thermal.SecondaryGrossFlowLmin)),
+                        Kv("Annual Grade A Makeup", "≤ 3,265 m³/yr (< 5.9% of yield)")
                     };
                 }
             );
@@ -1317,7 +1354,7 @@ namespace RakdaSim
                 "Zero-emission autonomous pods steered via 0.25 km NANF Hollow-Core Fiber + Co-Packaged Optics to the nearest healthy subterranean vault.",
                 new string[]
                 {
-                    "Local HCF+CPO E2E RTT: 143.2 μs (±2.0 μs) = 1.99 mm @ 50 km/h",
+                    "Local HCF+CPO E2E RTT: 143.2 μs wireless / 48.2 μs fibre (1.99 mm @ 50 km/h)",
                     "vs Regional Cloud (75 km SMF): 7.64 ms RTT / 90 ms loop = 1.25 m blind",
                     "87.34% local traffic breakout (saves ~455 MWh_e/yr WAN power)"
                 },
@@ -1336,11 +1373,11 @@ namespace RakdaSim
                 "civic_plaza",
                 "Public Civic Plaza (Over Vault Footprint)",
                 "Acoustic & Social Mitigation",
-                "Car-free public square sited directly above a Level −4 vault (~350 m² footprint), addressing the #1 resident survey concern (noise/vibration, 33.7%).",
+                "Car-free public square sited directly above a Level −4 vault (~350 m² footprint), addressing the #1 resident survey concern (noise/vibration, 35.1%, N=105 cleaned).",
                 new string[]
                 {
-                    "Zero vaults under residential foundations",
-                    "Survey (N=109): 3.19/5.00 DC comfort (64.8% pos/neutral)"
+                    "Zero vaults under residential foundations (100-yr EN 1990 concrete)",
+                    "Survey (N=105): 3.20/5.00 DC comfort (47.1% pos / 17.3% neut / 35.6% low)"
                 },
                 delegate(SimResult sim)
                 {
@@ -1348,7 +1385,7 @@ namespace RakdaSim
                     {
                         Kv("Active Vaults Below", Fmt("{0} / 5 online", sim.Electrical.ActiveVaultCount)),
                         Kv("Max Fire-Mist Noise", "< 110 dB (subterranean isolated)"),
-                        Kv("Survey Top Concern Addressed", "Noise/Vibration (33.7%)")
+                        Kv("Survey Top Concern Addressed", "Noise/Vibration (35.1%, N=105)")
                     };
                 }
             );
@@ -1357,19 +1394,19 @@ namespace RakdaSim
                 "civic_hub",
                 "Schools, Health Centre & Community Hub (15.0 ha)",
                 "2045 Circular District Anchor",
-                "4 primary schools, 2 secondary schools, primary health centre, and sports hub heated at near-ambient 5GDHC efficiency.",
+                "4 primary schools, 2 secondary schools, primary health centre, and sports hub served by the 30 km pre-insulated 70/35°C EN 253 network (13.0 W/m loss = 3,421 MWh/yr = 9.1%).",
                 new string[]
                 {
                     "15.0 ha civic/education + 14.0 ha retail/offices + 25.0 ha parks",
-                    "30 km twin-pipe HDPE 5GDHC ring (7.0 W/m loss = 4.9%)"
+                    "30 km EN 253 70/35°C steel pipes (13.0 W/m = 9.1% loss; 259 MWh_e/yr pump)"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
-                        Kv("District Thermal Demand", Fmt("{0:F2} MW_th", sim.Thermal.DistrictDemandMw)),
-                        Kv("5GDHC Pumping Power", Fmt("{0:F1} kW_e", sim.Thermal.RingPumpingKw)),
-                        Kv("Heat Coverage Ratio", Fmt("{0:F1}%", sim.Thermal.AnnualCoveragePct))
+                        Kv("Network Demand (incl. 0.39 MW loss)", Fmt("{0:F2} MW_th", sim.Thermal.TotalNetworkDemandMw)),
+                        Kv("EN 253 Pumping Power", Fmt("{0:F1} kW_e", sim.Thermal.RingPumpingKw)),
+                        Kv("Net Heat Coverage Ratio", Fmt("{0:F1}%", sim.Thermal.AnnualCoveragePct))
                     };
                 }
             );
@@ -1378,21 +1415,21 @@ namespace RakdaSim
                 "residential_district",
                 "7,500-Home Circular Residential District (20,000 Residents)",
                 "180.0 ha Masterplan · 90.0 ha Residential",
-                "Mixed-density 2045 urban district (3,095 buildings, 83.3 dph) heated by recovered data-centre waste heat via the 5GDHC network.",
+                "Mixed-density 2045 urban district (3,095 buildings, 83.3 dph) heated by recovered data-centre waste heat via instantaneous HIUs (≥55°C tap, zero stored DHW).",
                 new string[]
                 {
-                    "3,300 mid-rise (55 blks) · 1,200 low-rise (40 blks)",
-                    "2,100 townhouses · 900 detached houses",
-                    "Annual demand: 37,610 MWh_th/yr · Displaced CO₂: ~8,020 tCO₂/yr"
+                    "3,300 mid-rise · 1,200 low-rise · 2,100 townhouses · 900 detached",
+                    "Annual demand: 37,612 MWh_th/yr · €536/yr bill vs €1,001 Gas / €1,691 ASHP",
+                    "Avoided heating CO₂: 7,230–7,270 t/yr (6.8–7.5 mo embodied payback)"
                 },
                 delegate(SimResult sim)
                 {
                     return new List<KeyValuePair<string, string>>
                     {
                         Kv("Ambient Temp", Fmt("{0:F1} °C", sim.Inputs.AmbientTempC)),
-                        Kv("Total Heat Demand", Fmt("{0:F2} MW_th", sim.Thermal.DistrictDemandMw)),
+                        Kv("Building Heat Demand", Fmt("{0:F2} MW_th", sim.Thermal.DistrictDemandMw)),
                         Kv("Annualised Demand", Fmt("{0:F0} MWh_th/yr", sim.Thermal.AnnualisedDemandMWh)),
-                        Kv("Avoided Heating CO₂", Fmt("{0:F0} tCO₂/yr", sim.Financial.AvoidedHeatingCo2TonYr))
+                        Kv("Avoided Heating CO₂", Fmt("{0:F0} tCO₂/yr (7,230–7,270 nom.)", sim.Financial.AvoidedHeatingCo2TonYr))
                     };
                 }
             );

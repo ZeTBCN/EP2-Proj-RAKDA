@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, '**' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  web-and-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Syntax check all JS/MJS files
+        run: |
+          node --check \
+            docs/src/physics.js docs/src/scene.js docs/src/district.js docs/src/vaults.js docs/src/flows.js docs/src/ui.js docs/src/main.js \
+            docs/serve.mjs docs/tests/physics.test.mjs \
+            sim/src/physics.js sim/src/scene.js sim/src/district.js sim/src/vaults.js sim/src/flows.js sim/src/ui.js sim/src/main.js \
+            sim/serve.mjs sim/tests/physics.test.mjs sim/scripts/check-sync.mjs
+
+      - name: Run docs physics tests
+        run: node --test docs/tests/physics.test.mjs
+
+      - name: Run sim physics tests
+        run: node --test sim/tests/physics.test.mjs
+
+      - name: Verify docs/ and sim/ parity
+        run: node sim/scripts/check-sync.mjs
+
+  native-physics:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile and run C# PhysicsTests
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File sim/native/build.ps1 -TestsOnly

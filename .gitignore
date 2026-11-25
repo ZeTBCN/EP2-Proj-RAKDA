@@ -3,7 +3,12 @@
 Thumbs.db
 desktop.ini
 *.swp
+*.tmp
 .vscode/
+.idea/
+
+# Native test build artifacts
+sim/native/PhysicsTests.exe
 
 # Node / Python local artifacts
 node_modules/

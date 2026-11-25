@@ -1748,7 +1748,7 @@ export function createVaults(scene) {
   dcBatcher.flushInto(dryCoolerGroup);
 
   // -------------------------------------------------------------------------
-  // 2I. Semiconductor Grade C Ultrapure Water Train (ultrapure_train)
+  // 2I. Semiconductor Grade A Ultrapure Water Train (ultrapure_train)
   // -------------------------------------------------------------------------
   const ultrapureGroup = tagInspectable(new THREE.Group(), 'ultrapure_train');
   ultrapureGroup.position.set(4.6, -3.1, -7.8);
@@ -1972,7 +1972,7 @@ export function createVaults(scene) {
       ptesFlywheel.rotation.x += dt * (ptesActive ? 6.5 : 0.4);
     }
 
-    const orcNorm = Math.max(0, Math.min(1, thermal.orcOutputKw / 440));
+    const orcNorm = Math.max(0, Math.min(1, thermal.orcOutputKw / 420));
     if (Math.abs(orcNorm - lastOrcNorm) > 1e-4) {
       orcTurbineMat.emissiveIntensity = 0.22 + orcNorm * 1.45;
       orcBusMat.emissiveIntensity = 0.20 + orcNorm * 1.75;
@@ -1982,7 +1982,7 @@ export function createVaults(scene) {
       orcRotor.rotation.x += dt * (0.6 + orcNorm * 11.0);
     }
 
-    const mofActive = thermal.mofChillerMw > 0.05;
+    const mofActive = (thermal.commercialHeatSalesMw + thermal.mofChillerMw) > 0.05;
     if (mofActive) {
       if (animate || !lastMofActive) {
         mofMat.emissiveIntensity = 1.25 + 0.20 * Math.sin(elapsed * 3.2);

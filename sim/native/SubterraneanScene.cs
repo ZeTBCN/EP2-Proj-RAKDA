@@ -898,7 +898,7 @@ namespace RakdaSim
             _dcFanMesh = OwnMesh(BuildMergedFanMesh(r, 5, 0.64f));
 
             // -----------------------------------------------------------------
-            // 2I. Semiconductor Grade C Ultrapure Water Train (ultrapure_train)
+            // 2I. Semiconductor Grade A Ultrapure Water Train (ultrapure_train)
             // -----------------------------------------------------------------
             Vec3 upOrigin = new Vec3(4.6f, deckY, -7.8f);
             AddPickTarget("ultrapure_train",
@@ -1126,7 +1126,7 @@ namespace RakdaSim
                     WriteTranslateRotX(_ptesFlywheelCenter, _ptesFlywheelAngle, _ptesFlywheelModel.M);
                 }
 
-                float orcNorm = Clamp01((float)(thermal.OrcOutputKw / 440.0));
+                float orcNorm = Clamp01((float)(thermal.OrcOutputKw / 420.0));
                 if (Math.Abs(orcNorm - _lastOrcNorm) > 1e-4f)
                 {
                     _orcTurbineMat.EmissiveIntensity = 0.22f + orcNorm * 1.45f;
@@ -1140,7 +1140,7 @@ namespace RakdaSim
                     WriteTranslateRotX(_orcRotorCenter, _orcRotorAngle, _orcRotorModel.M);
                 }
 
-                bool mofActive = thermal.MofChillerMw > 0.05;
+                bool mofActive = (thermal.CommercialHeatSalesMw + thermal.MofChillerMw) > 0.05;
                 if (mofActive)
                 {
                     if (animate || _lastMofActive != 1)

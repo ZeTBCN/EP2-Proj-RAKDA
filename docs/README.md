@@ -1,35 +1,17 @@
-# RAKDA Ltd. (Group A-10) — 2045 Circular Urban Digital Twin
+# RAKDA Ltd. (Group A-10) — 2045 Circular Urban Digital Twin (`docs/`)
 
-Interactive 3D Engineering Simulation & Digital Twin for **Trinity College Dublin 1E17 Engineering Practice 2 (*The Circular City 2045*)**, grounded strictly in [SPEC.md](./SPEC.md) (*RAKDA Ltd. Report — Draft 3.2*, 21 Nov 2026).
+Live GitHub Pages static web deployment for **Trinity College Dublin 1E17 Engineering Practice 2 (*The Circular City 2045*)**, grounded strictly in [SPEC.md](./SPEC.md) (*RAKDA USCI (Nov 2026)* / `RAKDA-USCI.docx`, 27 Nov 2026) · **[Live Site](https://zetbcn.github.io/EP2-Proj-RAKDA/)** · **[rakda.ltd](https://rakda.ltd/)**.
+
+> **Note on Native Desktop App:** The standalone Windows OpenGL 3.3 desktop application (`RAKDA_3D_Sim.exe` and C# source in `sim/native/`) lives in [`../sim/`](../sim/README.md) so that `/docs` remains a clean static web deployment root for GitHub Pages. All web sources (`index.html`, `styles.css`, `SPEC.md`, `serve.mjs`, `start-sim.bat`, `src/*`, `tests/*`) are kept 100% byte-identical between `docs/` and `sim/` and verified in CI via `sim/scripts/check-sync.mjs`.
 
 ---
 
-## Quick Launch (Windows)
+## Quick Launch (Local Web Server)
 
-### Option A — Standalone Windows Executable (Recommended, No Node.js Required)
-Double-click **`RAKDA_3D_Sim.exe`** in this folder. It starts an embedded local HTTP static file server on `http://localhost:8170` (automatically selecting a free port if `8170` is busy) and opens the 3D simulation in your default browser.
-
-CLI options (PowerShell / Command Prompt):
-```powershell
-.\RAKDA_3D_Sim.exe                        # Default port 8170 (or PORT env var) + auto-open browser
-.\RAKDA_3D_Sim.exe --port 8200            # Custom preferred port
-.\RAKDA_3D_Sim.exe --no-browser           # Start server without opening a browser
-.\RAKDA_3D_Sim.exe --help                 # Show CLI usage
-```
-Keep the launcher console window open while using the simulation; press `Ctrl+C` or close the window to stop the server cleanly.
-
-#### Rebuilding `RAKDA_3D_Sim.exe`
-The standalone C# launcher source and build scripts live in `launcher/` and compile with the built-in Windows .NET Framework 4.x compiler (`csc.exe`, zero external SDKs required):
-```powershell
-.\launcher\build.ps1
-# or from Command Prompt:
-launcher\build.bat
-```
-
-### Option B — Node.js Batch Launcher
+### Option A — Node.js Batch Launcher (Windows)
 Double-click **`start-sim.bat`**. It automatically opens `http://localhost:8170` in your default browser and starts the local zero-dependency Node static server.
 
-### Option C — Node.js Terminal
+### Option B — Node.js Terminal
 ```bash
 node serve.mjs
 # Optional custom port:
@@ -37,7 +19,7 @@ node serve.mjs --port 8200
 ```
 Then open `http://localhost:8170` in Chrome or Edge.
 
-> **Note:** The 3D viewport loads Three.js `0.170.0` via `cdn.jsdelivr.net` importmap. If offline, the HUD displays a clear fallback warning banner while keeping all physics equations, scenarios, and telemetry interactive.
+> **Note:** The 3D viewport loads Three.js `0.170.0` via `cdn.jsdelivr.net` importmap (using PMREM `RoomEnvironment`, `UnrealBloomPass`, static geometry batching, 3D selection reticle, and WebGL context-loss recovery). If offline, the HUD displays a fallback warning banner while keeping all physics equations, scenarios, and telemetry interactive.
 
 ---
 
@@ -47,7 +29,8 @@ Then open `http://localhost:8170` in Chrome or Edge.
 |---|---|
 | **Left Mouse Drag** | Orbit camera around the 180 ha circular district & Level −4 vaults |
 | **Right Mouse Drag / Scroll** | Pan & zoom |
-| **Click any 3D Asset** | Open live Draft 3.2 specs & telemetry in the **Subsystem Inspector** |
+| **Click any 3D Asset** | Open live RAKDA USCI (Nov 2026) specs & telemetry in the **Subsystem Inspector** |
+| **Theme Toggle (`☀ Paper` / `☾ Slate`)** | Switch HUD between Dark Slate and **`rakda.ltd` Light Paper** (`#FAF7F2` / `#1A0F3C` / `#FF5C9A`), persisted in `localStorage` |
 | **`1` – `6`** | Fly smoothly between the 6 camera presets (Overview, Vaults, Hub, Vault 3, Pods, Top-Down) |
 | **`X`** | Toggle ground X-Ray cutaway opacity (`18%` ↔ `92%`) |
 | **`Space`** | Play / Pause simulation animation |
@@ -58,13 +41,13 @@ Then open `http://localhost:8170` in Chrome or Edge.
 
 ## Engineering Scenarios & Architecture
 
-1. **Nominal 2045 Design** — 10.0 MW IT load (`PUE = 1.015`, `88,914 MWh_e/yr` gross, `77,958 MWh_e/yr` net after `10,956 MWh_e/yr` PV), `9.80 MW_th` (`85,848 MWh_th/yr` = `228.3%` annual district demand), `4,635.3 L/min` primary `75°C` flow (`4,543 L/min` net), `1,923.1 L/min` secondary `45°C` flow.
-2. **Winter Cold Snap (−5°C)** — `9.52 MW_th` peak demand satisfied directly (`+0.28 MW_th` surplus).
-3. **Cold Snap + 60% Stress** — `5.88 MW_th` captured vs `9.52 MW_th` peak (`−3.64 MW_th` deficit) covered seamlessly by the `2,500 m³` thermal store (`~87.1 MWh_th`) and `8.0 MW_th` natural-refrigerant backup HTHPs (`COP 4.6–6.9`).
-4. **Vault 3 Fault + SDN Reroute** — Vault 3 goes offline; the 3.0 km NANF HCF optical ring reroutes V2X beams to healthy vaults and SDN shifts workload (`74.9×` more efficient than pumping hot water).
-5. **Summer Exergy Cascade** — `1.45 MW_th` DHW baseline creates `8.35 MW_th` surplus routed across `35 MWh_th` SrBr₂/K₂CO₃ TCES, `2 MW_e / 16 MWh_e` TI-PTES Carnot battery, `~422 kW_e` micro-ORC (`≤ 440 kW_e` cap), MOF chillers, and N+1 dry coolers.
-6. **Dublin 60-Day Drought** — `0×` rainfall input; `10,000 m³` RC drought cistern sustains 45–66 day dry spells while closed-loop cooling avoids `166,500 m³/yr` cooling-tower potable water.
-7. **Conservative Stress (`u=0.70, f_cap=0.80`)** — `49,056 MWh_th/yr` output (`130.4%` coverage of `37,610 MWh_th/yr` district demand).
+1. **Nominal 2045 Design** — 10.0 MW IT load (`PUE = 1.015`, `88,914 MWh_e/yr` gross, `77,958 MWh_e/yr` net after `10,956 MWh_e/yr` PV), `9.80 MW_th` (`85,848 MWh_th/yr` = `228%` gross / `209%` net of `37,612 MWh_th/yr` demand + `3,421 MWh_th/yr` EN 253 pipe loss at `13.0 W/m`), `76.5 L/s` primary `75°C` flow, `32.0 L/s` secondary `45°C` flow, break-even `u = 47.8%`.
+2. **Winter Design Day (−3°C)** — `9.52 MW_th` building peak + `0.39 MW_th` EN 253 loss = `9.91 MW_th` vs `9.80 MW_th` (`−0.11 MW_th` gap covered by the `2,500 m³` thermal store).
+3. **Cautious Winter (−3°C, u=0.70, f_cap=0.80)** — `5.60 MW_th` captured vs `9.91 MW_th` peak (`−4.31 MW_th` gap) covered by the `2,500 m³` store (`101.6 MWh_th` gross / `91.4 MWh_th` usable, `15 h` carry) + `8.0 MW_th` backup HTHPs (`48 h` resilience; Scenario B `40→75°C` at `COP 4.0–6.0`, `+€33/MWh`).
+4. **Vault 3 Fault + SDN Reroute** — Vault 3 goes offline; the 3.0 km NANF HCF optical ring reroutes V2X beams (`143.2 μs` E2E) and SDN shifts workload (`70.1×` more efficient than pumping hot water: `250 W` vs `17,530 W`).
+5. **Summer Surplus Cascade** — `44,816 MWh_th/yr` annual surplus (`35,852 MWh_th/yr` @ `75°C`) routed across direct `70–75°C` commercial heat sales, PFAS-free `~0.4 MW_e` Micro-ORC (`17.2%` Carnot @ `15°C` sink → `7.2–8.3%` efficiency, `2.60–2.97 GWh_e/yr`), and N+1 dry coolers.
+6. **Dublin 44-Day Drought** — `0×` rainfall input; `10,000 m³` RC cistern (`6,700 m³` min storage = `44 d` reserve at `152 m³/d`) & Grade A UPW loop (`≤3,265 m³/yr`) avoid `157,680–175,200 m³/yr` cooling-tower potable water.
+7. **Cautious Base (`u=0.70, f_cap=0.80`)** — `49,056 MWh_th/yr` output (`130%` gross / `120%` net coverage; break-even `u = 58.6%`).
 
 ---
 
