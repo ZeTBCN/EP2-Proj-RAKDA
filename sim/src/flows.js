@@ -825,7 +825,7 @@ export function createFlows(scene) {
     const pulse = 0.88 + 0.18 * Math.sin(internalElapsed * 3.4);
 
     // Advance scalar phases smoothly regardless of layer visibility
-    const flowNorm = Math.min(1.2, sim.thermal.primaryGrossFlowLmin / 4635.3);
+    const flowNorm = Math.min(1.2, sim.thermal.primaryGrossFlowLmin / 4590.0);
     phase1 = (phase1 + dt * (0.24 + flowNorm * 0.52)) % 1;
 
     const demandNorm = Math.min(1.2, sim.thermal.districtDemandMw / 9.52);
@@ -916,7 +916,7 @@ export function createFlows(scene) {
       orcBranch.conduit.setState(orcOn, null, 1.35 * pulse);
       loop2Packets.updateStream(loop2Packets.handles[L2_ORC], (phase2 * 1.6 + 0.5) % 1, orcOn);
 
-      const mofOn = sim.thermal.mofChillerMw > 0.05;
+      const mofOn = (sim.thermal.commercialHeatSalesMw + sim.thermal.mofChillerMw) > 0.05;
       mofBranch.conduit.setState(mofOn, null, 1.25 * pulse);
       loop2Packets.updateStream(loop2Packets.handles[L2_MOF], (phase2 * 1.5 + 0.7) % 1, mofOn);
 

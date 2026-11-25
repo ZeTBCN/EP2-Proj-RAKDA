@@ -423,7 +423,7 @@ namespace RakdaSim
             {
                 _rendererReady = false;
                 _rendererInitError = ex.Message;
-                ShowErrorBanner("OpenGL 3.3 Hardware Viewport Unavailable (" + ex.Message + "). Live Draft 3.2 physics controls & telemetry remain active.");
+                ShowErrorBanner("OpenGL 3.3 Hardware Viewport Unavailable (" + ex.Message + "). Live RAKDA USCI physics controls & telemetry remain active.");
             }
         }
 
@@ -591,10 +591,10 @@ namespace RakdaSim
 
             _kpiIt = new KpiPill("IT LOAD", "10.00 MW", ColCyan);
             _kpiPue = new KpiPill("PUE", "1.015", ColEmerald);
-            _kpiCov = new KpiPill("HEAT COV.", "228.3%", ColOrange);
+            _kpiCov = new KpiPill("NET HEAT COV.", "209.2%", ColOrange);
             _kpiRtt = new KpiPill("6G V2X RTT", "143.2 \u03bcs", ColViolet);
-            _kpiCo2 = new KpiPill("AVOIDED CO\u2082", "23,842 t/yr", ColEmerald);
-            _kpiNpv = new KpiPill("NPV @ 4%", "+\u20ac232.98M", ColAmber);
+            _kpiCo2 = new KpiPill("AVOIDED CO\u2082", "18,490 t/yr", ColEmerald);
+            _kpiNpv = new KpiPill("NPV @ 4%", "+\u20ac189.0M", ColAmber);
             _kpiGpuFps = new KpiPill("OPENGL 3.3 GPU", "Init...", ColCyan);
             _kpiGpuFps.AccentBorder = true;
 
@@ -933,7 +933,7 @@ namespace RakdaSim
             _leftPanel.Controls.Add(_cardParams);
 
             // 3. Faults & SDN Control
-            _cardFaults = new SectionCard("FAULTS & SDN CONTROL", "74.9\u00d7 vs Pump", ColViolet);
+            _cardFaults = new SectionCard("FAULTS & SDN CONTROL", "70.1\u00d7 vs EN 253", ColViolet);
 
             _toggleSdn = new DarkToggleSwitch("SDN Electro-Thermal Shifting", true);
             _toggleSdn.CheckedChanged += delegate(object s, EventArgs e)
@@ -945,7 +945,7 @@ namespace RakdaSim
             };
             _cardFaults.Controls.Add(_toggleSdn);
 
-            _toggleScenarioB = new DarkToggleSwitch("Scenario B HTHP (45\u00b0C \u2192 70\u00b0C)", false);
+            _toggleScenarioB = new DarkToggleSwitch("Scenario B HTHP (40\u00b0C \u2192 75\u00b0C)", false);
             _toggleScenarioB.CheckedChanged += delegate(object s, EventArgs e)
             {
                 if (_suppressUiEvents) return;
@@ -981,7 +981,7 @@ namespace RakdaSim
             _chkSurface = AddLayerPill(_cardLayers, "Surface District", true, delegate(bool v) { _layers.Surface = v; MarkShadowsDirtySafe(); });
             _chkHeatmap = AddLayerPill(_cardLayers, "Thermal Heat-Map", false, delegate(bool v) { _layers.Heatmap = v; });
             _chkLoop1 = AddLayerPill(_cardLayers, "Loop 1 (75\u00b0C)", true, delegate(bool v) { _layers.Loop1 = v; });
-            _chkLoop2 = AddLayerPill(_cardLayers, "Loop 2 (5GDHC)", true, delegate(bool v) { _layers.Loop2 = v; });
+            _chkLoop2 = AddLayerPill(_cardLayers, "Loop 2 (EN 253)", true, delegate(bool v) { _layers.Loop2 = v; });
             _chkLoop3 = AddLayerPill(_cardLayers, "Loop 3 (Water/Rain)", true, delegate(bool v) { _layers.Loop3 = v; });
             _chkOptical = AddLayerPill(_cardLayers, "Optical Ring", true, delegate(bool v) { _layers.Optical = v; });
             _chkVaults = AddLayerPill(_cardLayers, "Level \u22124 Vaults", true, delegate(bool v) { _layers.Vaults = v; MarkShadowsDirtySafe(); });
@@ -1162,7 +1162,7 @@ namespace RakdaSim
             _inspDescLbl.Font = FontSmall;
             _inspDescLbl.ForeColor = ColTextSec;
             _inspDescLbl.BackColor = Color.Transparent;
-            _inspDescLbl.Text = "Select a subterranean vault, 2,500 m\u00b3 thermal store, 10,000 m\u00b3 cistern, HTHP bank, TCES, TI-PTES, Micro-ORC, or surface asset in the 3D scene to inspect Draft 3.2 specs and live telemetry.";
+            _inspDescLbl.Text = "Select a subterranean vault, 2,500 m\u00b3 thermal store, 10,000 m\u00b3 cistern, HTHP bank, Micro-ORC, dry coolers, or surface asset in the 3D scene to inspect RAKDA USCI (Nov 2026) specs and live telemetry.";
             _cardInspector.Controls.Add(_inspDescLbl);
 
             _inspSpecsLbl = new Label();
@@ -1180,13 +1180,13 @@ namespace RakdaSim
 
             _rightPanel.Controls.Add(_cardInspector);
 
-            // 2. Thermal & Exergy Balance Card
-            _cardThermal = new SectionCard("THERMAL & EXERGY BALANCE", "Loops 1 & 2", ColOrange);
+            // 2. Thermal & Surplus Cascade Card
+            _cardThermal = new SectionCard("THERMAL & SURPLUS CASCADE", "Loops 1 & 2", ColOrange);
 
             _barCaptured = new DarkProgressBar("Captured Heat (98% nom.)", ColOrange);
             _cardThermal.Controls.Add(_barCaptured);
 
-            _barDemand = new DarkProgressBar("District Demand (7,500 homes)", ColCyan);
+            _barDemand = new DarkProgressBar("Network Demand (Incl. 0.39 MW)", ColCyan);
             _cardThermal.Controls.Add(_barDemand);
 
             _kvThermalCore = new KvTableControl();
@@ -1204,7 +1204,7 @@ namespace RakdaSim
             // 3. Power, Hydrology & Optical Card
             _cardGridWater = new SectionCard("POWER, HYDROLOGY & OPTICAL", "CRU \u00b7 Loop 3 \u00b7 6G", ColCyan);
 
-            _barCistern = new DarkProgressBar("10,000 m\u00b3 Drought Cistern", ColSky);
+            _barCistern = new DarkProgressBar("10,000 m\u00b3 Cistern (44 d Res.)", ColSky);
             _cardGridWater.Controls.Add(_barCistern);
 
             _kvGridWater = new KvTableControl();
@@ -1213,7 +1213,7 @@ namespace RakdaSim
             _rightPanel.Controls.Add(_cardGridWater);
 
             // 4. 30-Yr Economics & Survey Card
-            _cardFinance = new SectionCard("30-YR ECONOMICS & SURVEY", "Case 2 \u00b7 N=109", ColAmber);
+            _cardFinance = new SectionCard("30-YR ECONOMICS & SURVEY", "Case 2 \u00b7 N=105", ColAmber);
 
             _kvFinance = new KvTableControl();
             _cardFinance.Controls.Add(_kvFinance);
@@ -1561,7 +1561,7 @@ namespace RakdaSim
                 ScenarioPreset activePreset = PhysicsEngine.GetPreset(_state.ScenarioId);
                 _scenarioDescBox.DescriptionText = activePreset != null
                     ? activePreset.Description
-                    : "Custom interactive engineering configuration (live Draft 3.2 equations).";
+                    : "Custom interactive engineering configuration (live RAKDA USCI equations).";
 
                 int utilPct = (int)Math.Round(_state.Utilization * 100.0);
                 _sliderUtil.SetValueSilently(utilPct, string.Format(Inv, "{0}% ({1:F1} MW)", utilPct, _state.Utilization * 10.0));
@@ -1625,7 +1625,7 @@ namespace RakdaSim
             _kpiCov.ValueText = string.Format(Inv, "{0:F1}%", t.AnnualCoveragePct);
             _kpiRtt.ValueText = string.Format(Inv, "{0:F1} \u03bcs", o.ActiveLocalE2eRttUs);
             _kpiCo2.ValueText = co2Rounded + " t/yr";
-            _kpiNpv.ValueText = string.Format(Inv, "+\u20ac{0:F2}M", f.Npv4PctM);
+            _kpiNpv.ValueText = string.Format(Inv, "+\u20ac{0:F1}M", f.Npv4PctM);
 
             // Bottom dock states
             _btnPlay.Text = _playing ? "|| Pause" : "> Play";
@@ -1633,9 +1633,9 @@ namespace RakdaSim
             _btnDayCycle.Text = _autoDay ? "Day Cycle: On" : "Day Cycle: Off";
             _btnDayCycle.Active = _autoDay;
 
-            // Thermal & Exergy Balance Card
+            // Thermal & Surplus Cascade Card
             _barCaptured.Update(string.Format(Inv, "{0:F2} MW_th", t.CapturedHeatMw), (float)((t.CapturedHeatMw / 10.0) * 100.0));
-            _barDemand.Update(string.Format(Inv, "{0:F2} MW_th", t.DistrictDemandMw), (float)((t.DistrictDemandMw / 10.0) * 100.0));
+            _barDemand.Update(string.Format(Inv, "{0:F2} MW_th", t.TotalNetworkDemandMw), (float)((t.TotalNetworkDemandMw / 10.0) * 100.0));
 
             bool isSurplus = t.NetThermalBalanceMw >= 0.0;
             string balSign = isSurplus ? "+" : "\u2212";
@@ -1644,10 +1644,10 @@ namespace RakdaSim
             _kvThermalCore.SetRows(new KvRow[]
             {
                 new KvRow("Net Thermal Balance", string.Format(Inv, "{0}{1:F2} MW_th", balSign, Math.Abs(t.NetThermalBalanceMw)), balCol),
-                new KvRow("Annual Heat / Coverage", string.Format(Inv, "{0} MWh ({1:F1}%)", FormatInt(t.AnnualCapturedHeatMWh), t.AnnualCoveragePct), ColTextMain),
-                new KvRow("Primary 75\u00b0C (Gross/Net)", string.Format(Inv, "{0:F1} / {1:F0} L/min", t.PrimaryGrossFlowLmin, t.PrimaryNetFlowLmin), ColTextMain),
-                new KvRow("Secondary 45\u00b0C Flow", string.Format(Inv, "{0:F1} L/min ({1:F2} L/s)", t.SecondaryGrossFlowLmin, t.SecondaryGrossFlowLs), ColTextMain),
-                new KvRow("2,500 m\u00b3 Thermal Store", string.Format(Inv, "{0:F0}% ({1:F1} MWh_th)", t.ThermalStoreSoc * 100.0, t.ThermalStoreEnergyMWh), ColTextMain)
+                new KvRow("Annual Heat / Net Cov.", string.Format(Inv, "{0} MWh ({1:F0}%/{2:F0}%)", FormatInt(t.AnnualCapturedHeatMWh), t.AnnualGrossCoveragePct, t.AnnualCoveragePct), ColTextMain),
+                new KvRow("Primary 75\u00b0C Flow", string.Format(Inv, "{0:F1} L/s ({1:F0} L/m)", t.PrimaryGrossFlowLs, t.PrimaryGrossFlowLmin), ColTextMain),
+                new KvRow("Secondary 45\u00b0C Flow", string.Format(Inv, "{0:F1} L/s ({1:F0} L/m)", t.SecondaryGrossFlowLs, t.SecondaryGrossFlowLmin), ColTextMain),
+                new KvRow("2,500 m\u00b3 Thermal Store", string.Format(Inv, "{0:F0}% ({1:F1} MWh usable)", t.ThermalStoreSoc * 100.0, t.ThermalStoreUsableMWh), ColTextMain)
             });
 
             if (isSurplus)
@@ -1655,10 +1655,9 @@ namespace RakdaSim
                 _kvThermalCascade.SetRows(new KvRow[]
                 {
                     new KvRow("2,500 m\u00b3 Store Charge", string.Format(Inv, "{0:F2} MW_th", t.ThermalStoreChargeMw), ColTextMain),
-                    new KvRow("SrBr\u2082 TCES (35 MWh_th)", string.Format(Inv, "{0:F2} MW_th", t.TcesChargeMw), ColTextMain),
-                    new KvRow("TI-PTES (2 MW / 16 MWh)", string.Format(Inv, "{0:F2} MW_th", t.TiPtesChargeMw), ColTextMain),
-                    new KvRow("Micro-ORC (\u2264440 kW_e)", string.Format(Inv, "{0:F1} kW_e", t.OrcOutputKw), ColEmerald),
-                    new KvRow("MOF Chillers / Dry Cool", string.Format(Inv, "{0:F2} / {1:F2} MW", t.MofChillerMw, t.DryCoolerRejectionMw), ColTextMain)
+                    new KvRow("Tier 1: 75\u00b0C Heat Sales", string.Format(Inv, "{0:F2} MW_th", t.CommercialHeatSalesMw), ColOrange),
+                    new KvRow("Tier 2: Micro-ORC (~0.4 MW)", string.Format(Inv, "{0:F1} kW_e", t.OrcOutputKw), ColEmerald),
+                    new KvRow("Tier 3: N+1 Dry Coolers", string.Format(Inv, "{0:F2} MW_th", t.DryCoolerRejectionMw), ColTextMain)
                 });
             }
             else
@@ -1667,7 +1666,7 @@ namespace RakdaSim
                 {
                     new KvRow("Thermal Store Discharge", string.Format(Inv, "{0:F2} MW_th", t.ThermalStoreDischargeMw), ColOrange),
                     new KvRow("8.0 MW_th Backup HTHP", string.Format(Inv, "{0:F2} MW_th (COP {1:F2})", t.HthpThermalOutputMw, t.HthpCop), ColAmber),
-                    new KvRow("HTHP Electric Draw", string.Format(Inv, "{0:F2} MW_e", t.HthpElectricalMw), ColTextMain),
+                    new KvRow("HTHP Electric Draw", string.Format(Inv, "{0:F2} MW_e", t.HthpElectricalMw + t.ScenarioBElecMw), ColTextMain),
                     new KvRow("Unmet Deficit", string.Format(Inv, "{0:F2} MW_th", t.UnmetThermalDeficitMw), t.UnmetThermalDeficitMw > 0.01 ? ColRed : ColEmerald)
                 });
             }
@@ -1679,8 +1678,8 @@ namespace RakdaSim
                 new KvRow("Gross / Net Grid Annual", string.Format(Inv, "{0} / {1} MWh", FormatInt(e.AnnualGrossMWh), FormatInt(e.AnnualNetGridMWh)), ColTextMain),
                 new KvRow("12 MW_p PV / Net Import", string.Format(Inv, "{0:F2} / {1:F2} MW", e.PvOutputMw, e.NetGridDrawMw), ColTextMain),
                 new KvRow("8 MW / 32 MWh BESS", e.BessMode, ColTextMain),
-                new KvRow("Rain Harvest (120k m\u00b2)", string.Format(Inv, "{0} m\u00b3/yr", FormatInt(h.AnnualRainHarvestM3)), ColTextMain),
-                new KvRow("Avoided Cooling Water", string.Format(Inv, "{0} m\u00b3/yr", FormatInt(h.AvoidedPotableWaterM3Yr)), ColCyan),
+                new KvRow("Rain Harvest (10 ha inert)", string.Format(Inv, "{0} m\u00b3/yr", FormatInt(h.AnnualRainHarvestM3)), ColTextMain),
+                new KvRow("Avoided Tower Water", "157.7\u2013175.2k m\u00b3/yr", ColCyan),
                 new KvRow("Local V2X vs Cloud", string.Format(Inv, "{0:F2} mm vs {1:F2} m", o.LocalBlindTravelMm, o.CloudBlindTravelM), ColViolet),
                 new KvRow("Local Breakout / WAN", string.Format(Inv, "{0:F2}% / {1:F0} MWh", o.LocalBreakoutPct, o.WanPowerSavedMWhYr), ColTextMain)
             });
@@ -1688,9 +1687,11 @@ namespace RakdaSim
             // 30-Yr Economics & Survey Card
             _kvFinance.SetRows(new KvRow[]
             {
-                new KvRow("Case 2 CapEx vs CF", string.Format(Inv, "\u20ac{0:F2}M vs \u20ac{1:F2}M", f.CapexTotalM, f.CounterfactualCapexM), ColTextMain),
-                new KvRow("EBITDA / Payback", string.Format(Inv, "+\u20ac{0:F2}M/yr \u00b7 {1:F1} yr", f.EbitdaAnnualM, f.SimplePaybackYr), ColEmerald),
-                new KvRow("30-Yr IRR / NPV @ 8%", string.Format(Inv, "{0:F1}% \u00b7 +\u20ac{1:F2}M", f.IrrPct, f.Npv8PctM), ColTextMain),
+                new KvRow("CapEx (Utility + DC)", string.Format(Inv, "\u20ac{0:F2}M (\u20ac{1:F2}+\u20ac{2:F2})", f.CapexTotalM, f.CapexDistrictM, f.CapexDcOperatorM), ColTextMain),
+                new KvRow("Case 2 EBITDA / Payback", string.Format(Inv, "+\u20ac{0:F1}M/yr \u00b7 {1:F1} yr", f.EbitdaAnnualM, f.SimplePaybackYr), ColEmerald),
+                new KvRow("Case 2 IRR / NPV @ 8%", string.Format(Inv, "{0:F1}% \u00b7 +\u20ac{1:F0}M", f.IrrPct, f.Npv8PctM), ColTextMain),
+                new KvRow("Case 1 Utility IRR/LCOH", string.Format(Inv, "{0:F1}% \u00b7 \u20ac{1:F0}/MWh", f.UtilityIrrPct, f.UtilityLcohNetEurMwh), ColTextMain),
+                new KvRow("30-Yr TCO (USCI/Gas/HP)", string.Format(Inv, "\u20ac{0:F0}/\u20ac{1:F0}/\u20ac{2:F0}M", f.TcoUsciM, f.TcoGasM, f.TcoAshpM), ColTextMain),
                 new KvRow("Avoided Carbon", co2Rounded + " tCO\u2082/yr", ColEmerald),
                 new KvRow("Survey Comfort / H\u2082O", string.Format(Inv, "{0:F2}/5 \u00b7 {1:F2}/5 (N={2})", sv.DcComfortScore, sv.RecycledWaterScore, sv.SampleSize), ColTextMain)
             });
@@ -2404,7 +2405,7 @@ namespace RakdaSim
                 using (SolidBrush mutedBr = new SolidBrush(ColTextMuted))
                 {
                     g.DrawString("10.0 MW Subterranean DC \u00b7 Circular District", FontBrandTitle, mainBr, S(106), S(12));
-                    g.DrawString("TCD 1E17 EP2 \u00b7 Draft 3.2 Native OpenGL 3.3 Twin", FontBrandSub, mutedBr, S(106), S(31));
+                    g.DrawString("TCD 1E17 EP2 \u00b7 RAKDA USCI (Nov 2026) OpenGL 3.3 Twin", FontBrandSub, mutedBr, S(106), S(31));
                 }
             }
         }

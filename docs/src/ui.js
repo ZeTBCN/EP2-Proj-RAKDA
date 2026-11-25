@@ -9,6 +9,9 @@ const CAMERA_PRESET_LABELS = [
   { key: '6', label: '6 · Top Masterplan' },
 ];
 
+const INT_FORMATTER = new Intl.NumberFormat();
+const THEME_STORAGE_KEY = 'rakda_theme';
+
 function formatClock(hoursFloat) {
   const wrapped = ((hoursFloat % 24) + 24) % 24;
   const hh = Math.floor(wrapped);
@@ -16,19 +19,98 @@ function formatClock(hoursFloat) {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
-function barRow(label, valueText, pct, color) {
-  const clamped = Math.min(100, Math.max(0, pct));
-  return `
-    <div class="bar-block">
-      <div class="bar-head">
-        <span>${label}</span>
-        <span class="mono">${valueText}</span>
-      </div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${clamped.toFixed(1)}%; background:${color};"></div>
-      </div>
-    </div>
-  `;
+function createBarBlock(label, color) {
+  const block = document.createElement('div');
+  block.className = 'bar-block';
+
+  const head = document.createElement('div');
+  head.className = 'bar-head';
+
+  const labelEl = document.createElement('span');
+  labelEl.textContent = label;
+
+  const valEl = document.createElement('span');
+  valEl.className = 'mono';
+
+  head.appendChild(labelEl);
+  head.appendChild(valEl);
+
+  const track = document.createElement('div');
+  track.className = 'bar-track';
+
+  const fill = document.createElement('div');
+  fill.className = 'bar-fill';
+  fill.style.background = color;
+  fill.style.width = '0.0%';
+
+  track.appendChild(fill);
+  block.appendChild(head);
+  block.appendChild(track);
+
+  let lastText = '';
+  let lastWidth = '';
+
+  return {
+    el: block,
+    update(valueText, pct) {
+      if (lastText !== valueText) {
+        valEl.textContent = valueText;
+        lastText = valueText;
+      }
+      const clamped = Math.min(100, Math.max(0, pct));
+      const widthStr = `${clamped.toFixed(1)}%`;
+      if (lastWidth !== widthStr) {
+        fill.style.width = widthStr;
+        lastWidth = widthStr;
+      }
+    },
+  };
+}
+
+function createKvGrid(rows, marginTop) {
+  const grid = document.createElement('div');
+  grid.className = 'kv-grid';
+  if (marginTop) grid.style.marginTop = marginTop;
+
+  const valueMap = Object.create(null);
+  const cacheMap = Object.create(null);
+  const classMap = Object.create(null);
+
+  for (const [id, label, baseClass] of rows) {
+    const kEl = document.createElement('span');
+    kEl.className = 'kv-k';
+    kEl.textContent = label;
+
+    const vEl = document.createElement('span');
+    const cls = baseClass ? `kv-v ${baseClass}` : 'kv-v';
+    vEl.className = cls;
+
+    grid.appendChild(kEl);
+    grid.appendChild(vEl);
+
+    valueMap[id] = vEl;
+    cacheMap[id] = '';
+    classMap[id] = cls;
+  }
+
+  return {
+    el: grid,
+    set(id, text, extraClass) {
+      const vEl = valueMap[id];
+      if (!vEl) return;
+      if (cacheMap[id] !== text) {
+        vEl.textContent = text;
+        cacheMap[id] = text;
+      }
+      if (extraClass !== undefined) {
+        const nextCls = extraClass ? `kv-v ${extraClass}` : 'kv-v';
+        if (classMap[id] !== nextCls) {
+          vEl.className = nextCls;
+          classMap[id] = nextCls;
+        }
+      }
+    },
+  };
 }
 
 export function createUI(callbacks) {
@@ -39,6 +121,7 @@ export function createUI(callbacks) {
     scenarioDesc: document.getElementById('scenario-desc'),
     vaultFaultBtns: document.getElementById('vault-fault-btns'),
     cameraPresets: document.getElementById('camera-presets'),
+    metaThemeColor: document.getElementById('meta-theme-color'),
 
     sliderUtil: document.getElementById('slider-util'),
     sliderFcap: document.getElementById('slider-fcap'),
@@ -82,6 +165,7 @@ export function createUI(callbacks) {
     inspSpecs: document.getElementById('inspector-specs'),
     inspMetrics: document.getElementById('inspector-metrics'),
 
+    btnTheme: document.getElementById('btn-theme'),
     btnPlay: document.getElementById('btn-play'),
     btnSpeed: document.getElementById('btn-speed'),
     btnDaycycle: document.getElementById('btn-daycycle'),
@@ -93,13 +177,168 @@ export function createUI(callbacks) {
     btnToggleRight: document.getElementById('btn-toggle-right'),
   };
 
+  // Cached text / input values to avoid redundant DOM writes
+  const textCache = Object.create(null);
+  const valCache = Object.create(null);
+  const boolCache = Object.create(null);
+
+  function setText(el, key, value) {
+    if (textCache[key] !== value) {
+      el.textContent = value;
+      textCache[key] = value;
+    }
+  }
+
+  function setInputVal(el, key, value) {
+    const str = String(value);
+    if (valCache[key] !== str) {
+      el.value = str;
+      valCache[key] = str;
+    }
+  }
+
+  function setChecked(el, key, checked) {
+    if (boolCache[key] !== checked) {
+      el.checked = checked;
+      boolCache[key] = checked;
+    }
+  }
+
+  function setPressed(el, key, pressed) {
+    const str = pressed ? 'true' : 'false';
+    if (boolCache[key] !== str) {
+      el.setAttribute('aria-pressed', str);
+      boolCache[key] = str;
+    }
+  }
+
+  // Theme initialization & toggle (Dark Slate <-> rakda.ltd Light Paper)
+  function applyTheme(isLight) {
+    document.body.classList.toggle('theme-light', isLight);
+    if (els.btnTheme) {
+      els.btnTheme.textContent = isLight ? '☾ Slate' : '☀ Paper';
+      els.btnTheme.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+    }
+    if (els.metaThemeColor) {
+      els.metaThemeColor.setAttribute('content', isLight ? '#FAF7F2' : '#0b1220');
+    }
+  }
+
+  let lightTheme = false;
+  try {
+    lightTheme = window.localStorage?.getItem(THEME_STORAGE_KEY) === 'light';
+  } catch {
+    lightTheme = false;
+  }
+  applyTheme(lightTheme);
+
+  if (els.btnTheme) {
+    els.btnTheme.addEventListener('click', () => {
+      lightTheme = !lightTheme;
+      applyTheme(lightTheme);
+      try {
+        window.localStorage?.setItem(THEME_STORAGE_KEY, lightTheme ? 'light' : 'dark');
+      } catch {
+        // Ignore storage restrictions
+      }
+    });
+  }
+
+  // Auto-collapse side drawers on narrow mobile viewports (<= 900px)
+  function setPanelCollapsed(panel, toggleBtn, collapsed) {
+    panel.classList.toggle('collapsed', collapsed);
+    toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  }
+
+  if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+    setPanelCollapsed(els.leftPanel, els.btnToggleLeft, true);
+    setPanelCollapsed(els.rightPanel, els.btnToggleRight, true);
+  }
+
   let inspectedKey = null;
+  let renderedInspectedKey = null;
+  let inspectorMetricNodes = [];
+
+  // Build persistent DOM structures for telemetry cards once (zero innerHTML thrashing)
+  const thermalCapturedBar = createBarBlock('Captured Heat (98% nom.)', '#ff6b2c');
+  const thermalDemandBar = createBarBlock('Network Demand (Incl. 0.39 MW loss)', '#22d3ee');
+  const thermalCoreKv = createKvGrid(
+    [
+      ['balance', 'Net Thermal Balance', ''],
+      ['annual', 'Annual Heat / Net Cov.', ''],
+      ['primary', 'Primary 75°C (Gross/Net)', ''],
+      ['secondary', 'Secondary 45°C Flow', ''],
+      ['store', '2,500 m³ Store (101.6 MWh)', ''],
+    ],
+    '4px'
+  );
+  const thermalSurplusKv = createKvGrid(
+    [
+      ['storeCharge', '2,500 m³ Store Charge', ''],
+      ['commSales', 'Tier 1: 75°C Heat Sales', 'accent-orange'],
+      ['orc', 'Tier 2: Micro-ORC (~0.4 MW_e)', 'accent-emerald'],
+      ['dryCool', 'Tier 3: N+1 Dry Coolers', ''],
+    ],
+    '6px'
+  );
+  const thermalDeficitKv = createKvGrid(
+    [
+      ['storeDischarge', 'Thermal Store Discharge', 'accent-orange'],
+      ['hthpOut', '8.0 MW_th Backup HTHP', 'accent-amber'],
+      ['hthpElec', 'HTHP Electric Draw', ''],
+      ['unmet', 'Unmet Deficit', 'accent-emerald'],
+    ],
+    '6px'
+  );
+  thermalDeficitKv.el.hidden = true;
+  thermalDeficitKv.el.classList.add('hidden');
+  let lastSurplusMode = true;
+
+  els.telThermal.replaceChildren(
+    thermalCapturedBar.el,
+    thermalDemandBar.el,
+    thermalCoreKv.el,
+    thermalSurplusKv.el,
+    thermalDeficitKv.el
+  );
+
+  const cisternBar = createBarBlock('10,000 m³ Cistern (44 d Reserve)', '#0ea5e9');
+  const gridWaterKv = createKvGrid(
+    [
+      ['gridAnnual', 'Gross / Net Grid Annual', ''],
+      ['pvImport', '12 MW_p PV / Net Import', ''],
+      ['bess', '8 MW / 32 MWh BESS', ''],
+      ['rain', 'Rain Harvest (10 ha inert)', ''],
+      ['waterSaved', 'Avoided Tower Water', 'accent-cyan'],
+      ['v2x', 'Local V2X vs Cloud (50 km/h)', 'accent-violet'],
+      ['breakout', 'Local Breakout / WAN Saved', ''],
+    ],
+    '4px'
+  );
+  els.telGridWater.replaceChildren(cisternBar.el, gridWaterKv.el);
+
+  const financeKv = createKvGrid(
+    [
+      ['capex', 'CapEx (Utility + DC)', ''],
+      ['ebitda', 'Case 2 EBITDA / Payback', 'accent-emerald'],
+      ['irr', 'Case 2 IRR / NPV @ 8%', ''],
+      ['utility', 'Case 1 Utility IRR / LCOH', ''],
+      ['tco', '30-Yr TCO (USCI/Gas/ASHP)', ''],
+      ['co2', 'Avoided CO₂ (Heat + PUE)', 'accent-emerald'],
+      ['survey', 'Survey Comfort / H₂O (N=105)', ''],
+    ],
+    ''
+  );
+  els.telFinance.replaceChildren(financeKv.el);
 
   // Build 7 scenario buttons
   const presetBtnMap = new Map();
+  let activeScenarioId = null;
   for (const preset of SCENARIO_LIST) {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'preset-btn';
+    btn.setAttribute('aria-pressed', 'false');
     btn.innerHTML = `<span class="p-title">${preset.shortLabel}</span><span class="p-badge">${preset.badge}</span>`;
     btn.addEventListener('click', () => callbacks.onPresetSelect(preset.id));
     els.scenarioBtns.appendChild(btn);
@@ -108,9 +347,12 @@ export function createUI(callbacks) {
 
   // Build 5 Vault fault buttons
   const faultBtnList = [];
+  const lastVaultFaults = [false, false, false, false, false];
   for (let i = 0; i < 5; i++) {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'vault-btn';
+    btn.setAttribute('aria-pressed', 'false');
     btn.textContent = `V${i + 1} OK`;
     btn.addEventListener('click', () => callbacks.onToggleVaultFault(i));
     els.vaultFaultBtns.appendChild(btn);
@@ -119,44 +361,118 @@ export function createUI(callbacks) {
 
   // Build 6 camera preset buttons
   const camBtns = [];
+  let activeCamIdx = 0;
+  function setActiveCamBtn(idx) {
+    if (activeCamIdx === idx) return;
+    if (camBtns[activeCamIdx]) {
+      camBtns[activeCamIdx].classList.remove('active');
+      camBtns[activeCamIdx].setAttribute('aria-pressed', 'false');
+    }
+    if (camBtns[idx]) {
+      camBtns[idx].classList.add('active');
+      camBtns[idx].setAttribute('aria-pressed', 'true');
+    }
+    activeCamIdx = idx;
+  }
+
   CAMERA_PRESET_LABELS.forEach((cp, idx) => {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'cam-btn' + (idx === 0 ? ' active' : '');
+    btn.setAttribute('aria-pressed', idx === 0 ? 'true' : 'false');
     btn.textContent = cp.label;
     btn.addEventListener('click', () => {
-      camBtns.forEach((b, j) => b.classList.toggle('active', j === idx));
+      setActiveCamBtn(idx);
       callbacks.onCameraPreset(idx);
     });
     els.cameraPresets.appendChild(btn);
     camBtns.push(btn);
   });
 
-  // Slider bindings
-  els.sliderUtil.addEventListener('input', () =>
-    callbacks.onStatePatch({ utilization: Number(els.sliderUtil.value) / 100, scenarioId: 'custom' })
-  );
-  els.sliderFcap.addEventListener('input', () =>
-    callbacks.onStatePatch({ heatCaptureEff: Number(els.sliderFcap.value) / 100, scenarioId: 'custom' })
-  );
-  els.sliderTemp.addEventListener('input', () =>
-    callbacks.onStatePatch({ ambientTempC: Number(els.sliderTemp.value), scenarioId: 'custom' })
-  );
-  els.sliderRain.addEventListener('input', () =>
-    callbacks.onStatePatch({ rainfallMultiplier: Number(els.sliderRain.value), scenarioId: 'custom' })
-  );
-  els.sliderTime.addEventListener('input', () =>
-    callbacks.onStatePatch({ timeOfDay: Number(els.sliderTime.value) })
-  );
-  els.sliderXray.addEventListener('input', () =>
-    callbacks.onGroundOpacity(Number(els.sliderXray.value) / 100)
-  );
+  // Leading-edge + rAF-coalesced slider dispatch
+  let pendingStatePatch = null;
+  let pendingGroundOpacity = null;
+  let sliderRafId = 0;
 
-  els.toggleSdn.addEventListener('change', () =>
-    callbacks.onStatePatch({ sdnEnabled: els.toggleSdn.checked, scenarioId: 'custom' })
-  );
-  els.toggleScenarioB.addEventListener('change', () =>
-    callbacks.onStatePatch({ hthpScenarioB: els.toggleScenarioB.checked, scenarioId: 'custom' })
-  );
+  function flushPendingSliders() {
+    sliderRafId = 0;
+    const patch = pendingStatePatch;
+    const opacity = pendingGroundOpacity;
+    pendingStatePatch = null;
+    pendingGroundOpacity = null;
+    if (patch) callbacks.onStatePatch(patch);
+    if (opacity !== null) callbacks.onGroundOpacity(opacity);
+  }
+
+  function scheduleSliderFrame() {
+    if (sliderRafId || typeof requestAnimationFrame !== 'function') return;
+    sliderRafId = requestAnimationFrame(flushPendingSliders);
+  }
+
+  function emitSliderState(patch) {
+    if (!sliderRafId) {
+      callbacks.onStatePatch(patch);
+      scheduleSliderFrame();
+    } else {
+      pendingStatePatch = pendingStatePatch ? Object.assign(pendingStatePatch, patch) : Object.assign({}, patch);
+    }
+  }
+
+  function emitGroundOpacity(opacity01) {
+    if (!sliderRafId) {
+      callbacks.onGroundOpacity(opacity01);
+      scheduleSliderFrame();
+    } else {
+      pendingGroundOpacity = opacity01;
+    }
+  }
+
+  // Slider bindings
+  els.sliderUtil.addEventListener('input', () => {
+    const util = Number(els.sliderUtil.value) / 100;
+    valCache.sliderUtil = els.sliderUtil.value;
+    setText(els.valUtil, 'valUtil', `${Math.round(util * 100)}% (${(util * 10).toFixed(1)} MW)`);
+    emitSliderState({ utilization: util, scenarioId: 'custom' });
+  });
+  els.sliderFcap.addEventListener('input', () => {
+    const fcap = Number(els.sliderFcap.value) / 100;
+    valCache.sliderFcap = els.sliderFcap.value;
+    setText(els.valFcap, 'valFcap', `${Math.round(fcap * 100)}%`);
+    emitSliderState({ heatCaptureEff: fcap, scenarioId: 'custom' });
+  });
+  els.sliderTemp.addEventListener('input', () => {
+    const temp = Number(els.sliderTemp.value);
+    valCache.sliderTemp = els.sliderTemp.value;
+    setText(els.valTemp, 'valTemp', `${temp.toFixed(1)} °C`);
+    emitSliderState({ ambientTempC: temp, scenarioId: 'custom' });
+  });
+  els.sliderRain.addEventListener('input', () => {
+    const rain = Number(els.sliderRain.value);
+    valCache.sliderRain = els.sliderRain.value;
+    setText(els.valRain, 'valRain', `${rain.toFixed(2)}× (${(772.5 * rain).toFixed(0)} mm/yr)`);
+    emitSliderState({ rainfallMultiplier: rain, scenarioId: 'custom' });
+  });
+  els.sliderTime.addEventListener('input', () => {
+    const tod = Number(els.sliderTime.value);
+    valCache.sliderTime = els.sliderTime.value;
+    setText(els.valTime, 'valTime', formatClock(tod));
+    emitSliderState({ timeOfDay: tod });
+  });
+  els.sliderXray.addEventListener('input', () => {
+    const op = Number(els.sliderXray.value) / 100;
+    valCache.sliderXray = els.sliderXray.value;
+    setText(els.valXray, 'valXray', `${Math.round(op * 100)}%`);
+    emitGroundOpacity(op);
+  });
+
+  els.toggleSdn.addEventListener('change', () => {
+    boolCache.sdn = els.toggleSdn.checked;
+    callbacks.onStatePatch({ sdnEnabled: els.toggleSdn.checked, scenarioId: 'custom' });
+  });
+  els.toggleScenarioB.addEventListener('change', () => {
+    boolCache.scenarioB = els.toggleScenarioB.checked;
+    callbacks.onStatePatch({ hthpScenarioB: els.toggleScenarioB.checked, scenarioId: 'custom' });
+  });
 
   // Layer toggles
   const layerBindings = [
@@ -177,11 +493,20 @@ export function createUI(callbacks) {
   els.btnSpeed.addEventListener('click', () => callbacks.onAction('cycleSpeed'));
   els.btnDaycycle.addEventListener('click', () => callbacks.onAction('toggleDayCycle'));
   els.btnXray.addEventListener('click', () => callbacks.onAction('toggleXray'));
-  els.btnReset.addEventListener('click', () => callbacks.onCameraPreset(0));
+  els.btnReset.addEventListener('click', () => {
+    setActiveCamBtn(0);
+    callbacks.onCameraPreset(0);
+  });
   els.btnPresent.addEventListener('click', () => callbacks.onAction('togglePresent'));
   els.btnPresentTop.addEventListener('click', () => callbacks.onAction('togglePresent'));
-  els.btnToggleLeft.addEventListener('click', () => els.leftPanel.classList.toggle('collapsed'));
-  els.btnToggleRight.addEventListener('click', () => els.rightPanel.classList.toggle('collapsed'));
+  els.btnToggleLeft.addEventListener('click', () => {
+    const nextCollapsed = !els.leftPanel.classList.contains('collapsed');
+    setPanelCollapsed(els.leftPanel, els.btnToggleLeft, nextCollapsed);
+  });
+  els.btnToggleRight.addEventListener('click', () => {
+    const nextCollapsed = !els.rightPanel.classList.contains('collapsed');
+    setPanelCollapsed(els.rightPanel, els.btnToggleRight, nextCollapsed);
+  });
 
   // Keyboard shortcuts
   window.addEventListener('keydown', (e) => {
@@ -189,7 +514,7 @@ export function createUI(callbacks) {
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
     if (e.key >= '1' && e.key <= '6') {
       const idx = Number(e.key) - 1;
-      camBtns.forEach((b, j) => b.classList.toggle('active', j === idx));
+      setActiveCamBtn(idx);
       callbacks.onCameraPreset(idx);
     } else if (e.key === 'x' || e.key === 'X') {
       callbacks.onAction('toggleXray');
@@ -199,59 +524,129 @@ export function createUI(callbacks) {
     } else if (e.key === 'h' || e.key === 'H') {
       callbacks.onAction('togglePresent');
     } else if (e.key === 'r' || e.key === 'R') {
-      camBtns.forEach((b, j) => b.classList.toggle('active', j === 0));
+      setActiveCamBtn(0);
       callbacks.onCameraPreset(0);
     }
   });
 
   function syncControlsFromState(state, groundOpacity) {
-    for (const [id, btn] of presetBtnMap.entries()) {
-      btn.classList.toggle('active', id === state.scenarioId);
+    if (activeScenarioId !== state.scenarioId) {
+      if (activeScenarioId && presetBtnMap.has(activeScenarioId)) {
+        const prevBtn = presetBtnMap.get(activeScenarioId);
+        prevBtn.classList.remove('active');
+        prevBtn.setAttribute('aria-pressed', 'false');
+      }
+      if (presetBtnMap.has(state.scenarioId)) {
+        const nextBtn = presetBtnMap.get(state.scenarioId);
+        nextBtn.classList.add('active');
+        nextBtn.setAttribute('aria-pressed', 'true');
+      }
+      activeScenarioId = state.scenarioId;
+
+      const preset = SCENARIO_PRESETS[state.scenarioId];
+      setText(
+        els.scenarioDesc,
+        'scenarioDesc',
+        preset ? preset.description : 'Custom interactive engineering configuration (live RAKDA USCI equations).'
+      );
     }
-    const preset = SCENARIO_PRESETS[state.scenarioId];
-    els.scenarioDesc.textContent = preset
-      ? preset.description
-      : 'Custom interactive engineering configuration (live Draft 3.2 equations).';
 
-    els.sliderUtil.value = Math.round(state.utilization * 100);
-    els.valUtil.textContent = `${Math.round(state.utilization * 100)}% (${(state.utilization * 10).toFixed(1)} MW)`;
+    const utilPct = Math.round(state.utilization * 100);
+    setInputVal(els.sliderUtil, 'sliderUtil', utilPct);
+    setText(els.valUtil, 'valUtil', `${utilPct}% (${(state.utilization * 10).toFixed(1)} MW)`);
 
-    els.sliderFcap.value = Math.round(state.heatCaptureEff * 100);
-    els.valFcap.textContent = `${Math.round(state.heatCaptureEff * 100)}%`;
+    const fcapPct = Math.round(state.heatCaptureEff * 100);
+    setInputVal(els.sliderFcap, 'sliderFcap', fcapPct);
+    setText(els.valFcap, 'valFcap', `${fcapPct}%`);
 
-    els.sliderTemp.value = state.ambientTempC;
-    els.valTemp.textContent = `${state.ambientTempC.toFixed(1)} °C`;
+    setInputVal(els.sliderTemp, 'sliderTemp', state.ambientTempC);
+    setText(els.valTemp, 'valTemp', `${state.ambientTempC.toFixed(1)} °C`);
 
-    els.sliderRain.value = state.rainfallMultiplier;
-    els.valRain.textContent = `${state.rainfallMultiplier.toFixed(2)}× (${(772.5 * state.rainfallMultiplier).toFixed(0)} mm/yr)`;
+    setInputVal(els.sliderRain, 'sliderRain', state.rainfallMultiplier);
+    setText(
+      els.valRain,
+      'valRain',
+      `${state.rainfallMultiplier.toFixed(2)}× (${(772.5 * state.rainfallMultiplier).toFixed(0)} mm/yr)`
+    );
 
-    els.sliderTime.value = state.timeOfDay;
-    els.valTime.textContent = formatClock(state.timeOfDay);
+    setInputVal(els.sliderTime, 'sliderTime', state.timeOfDay);
+    setText(els.valTime, 'valTime', formatClock(state.timeOfDay));
 
-    els.sliderXray.value = Math.round(groundOpacity * 100);
-    els.valXray.textContent = `${Math.round(groundOpacity * 100)}%`;
+    const xrayPct = Math.round(groundOpacity * 100);
+    setInputVal(els.sliderXray, 'sliderXray', xrayPct);
+    setText(els.valXray, 'valXray', `${xrayPct}%`);
 
-    els.toggleSdn.checked = Boolean(state.sdnEnabled);
-    els.toggleScenarioB.checked = Boolean(state.hthpScenarioB);
+    setChecked(els.toggleSdn, 'sdn', Boolean(state.sdnEnabled));
+    setChecked(els.toggleScenarioB, 'scenarioB', Boolean(state.hthpScenarioB));
 
-    faultBtnList.forEach((btn, i) => {
+    setPressed(els.btnXray, 'btnXray', groundOpacity <= 0.4);
+
+    for (let i = 0; i < faultBtnList.length; i++) {
       const faulted = Boolean(state.vaultFaults[i]);
-      btn.classList.toggle('faulted', faulted);
-      btn.textContent = faulted ? `V${i + 1} FLT` : `V${i + 1} OK`;
-    });
+      if (lastVaultFaults[i] !== faulted) {
+        lastVaultFaults[i] = faulted;
+        const btn = faultBtnList[i];
+        btn.classList.toggle('faulted', faulted);
+        btn.setAttribute('aria-pressed', faulted ? 'true' : 'false');
+        btn.textContent = faulted ? `V${i + 1} FLT` : `V${i + 1} OK`;
+      }
+    }
   }
 
   function updateInspector(sim) {
     if (!inspectedKey || !SUBSYSTEM_INFO[inspectedKey]) return;
     const info = SUBSYSTEM_INFO[inspectedKey];
-    els.inspBadge.textContent = info.category;
-    els.inspTitle.textContent = info.title;
-    els.inspDesc.textContent = info.description;
-    els.inspSpecs.innerHTML = info.specs.map((s) => `<li>${s}</li>`).join('');
-    els.inspMetrics.innerHTML = info
-      .getLiveMetrics(sim)
-      .map(([k, v]) => `<span class="kv-k">${k}</span><span class="kv-v">${v}</span>`)
-      .join('');
+
+    if (renderedInspectedKey !== inspectedKey) {
+      renderedInspectedKey = inspectedKey;
+      setText(els.inspBadge, 'inspBadge', info.category);
+      setText(els.inspTitle, 'inspTitle', info.title);
+      setText(els.inspDesc, 'inspDesc', info.description);
+
+      const specFrag = document.createDocumentFragment();
+      for (const spec of info.specs) {
+        const li = document.createElement('li');
+        li.textContent = spec;
+        specFrag.appendChild(li);
+      }
+      els.inspSpecs.replaceChildren(specFrag);
+      inspectorMetricNodes = [];
+    }
+
+    const metrics = info.getLiveMetrics(sim);
+    if (inspectorMetricNodes.length !== metrics.length) {
+      const metricFrag = document.createDocumentFragment();
+      inspectorMetricNodes = [];
+      for (const [k, v] of metrics) {
+        const kEl = document.createElement('span');
+        kEl.className = 'kv-k';
+        kEl.textContent = k;
+
+        const vEl = document.createElement('span');
+        vEl.className = 'kv-v';
+        const vStr = String(v);
+        vEl.textContent = vStr;
+
+        metricFrag.appendChild(kEl);
+        metricFrag.appendChild(vEl);
+        inspectorMetricNodes.push({ kEl, vEl, lastK: k, lastV: vStr });
+      }
+      els.inspMetrics.replaceChildren(metricFrag);
+    } else {
+      for (let i = 0; i < metrics.length; i++) {
+        const [k, v] = metrics[i];
+        const node = inspectorMetricNodes[i];
+        if (node.lastK !== k) {
+          node.kEl.textContent = k;
+          node.lastK = k;
+        }
+        const vStr = String(v);
+        if (node.lastV !== vStr) {
+          node.vEl.textContent = vStr;
+          node.lastV = vStr;
+        }
+      }
+    }
   }
 
   function setInspectedKey(key, sim) {
@@ -261,89 +656,103 @@ export function createUI(callbacks) {
   }
 
   function renderTelemetry(sim, runtimeFlags) {
+    const e = sim.electrical;
+    const t = sim.thermal;
+    const h = sim.hydrology;
+    const o = sim.optical;
+    const f = sim.financial;
+    const sv = sim.survey;
+
+    const co2Rounded = INT_FORMATTER.format(Math.round(f.totalAvoidedCo2TonYr));
+    const isPresent = document.body.classList.contains('presentation-mode');
+
     // Top KPI Pills
-    els.kpiIt.textContent = `${sim.electrical.totalItMw.toFixed(2)} MW`;
-    els.kpiPue.textContent = `${sim.electrical.pue.toFixed(3)}`;
-    els.kpiCov.textContent = `${sim.thermal.annualCoveragePct.toFixed(1)}%`;
-    els.kpiRtt.textContent = `${sim.optical.activeLocalE2eRttUs.toFixed(1)} μs`;
-    els.kpiCo2.textContent = `${Math.round(sim.financial.totalAvoidedCo2TonYr).toLocaleString()} t/yr`;
-    els.kpiNpv.textContent = `+€${sim.financial.NPV_4PCT_M.toFixed(2)}M`;
+    setText(els.kpiIt, 'kpiIt', `${e.totalItMw.toFixed(2)} MW`);
+    setText(els.kpiPue, 'kpiPue', `${e.pue.toFixed(3)}`);
+    setText(els.kpiCov, 'kpiCov', `${t.annualCoveragePct.toFixed(1)}%`);
+    setText(els.kpiRtt, 'kpiRtt', `${o.activeLocalE2eRttUs.toFixed(1)} μs`);
+    setText(els.kpiCo2, 'kpiCo2', `${co2Rounded} t/yr`);
+    setText(els.kpiNpv, 'kpiNpv', `+€${f.NPV_4PCT_M.toFixed(1)}M`);
 
     // Dock button states
-    els.btnPlay.textContent = runtimeFlags.playing ? '⏸ Pause' : '▶ Play';
-    els.btnSpeed.textContent = `${runtimeFlags.speed.toFixed(1)}× Speed`;
-    els.btnDaycycle.textContent = runtimeFlags.autoDay ? '☀ Day Cycle: On' : '☀ Day Cycle: Off';
+    setText(els.btnPlay, 'btnPlay', runtimeFlags.playing ? '⏸ Pause' : '▶ Play');
+    setPressed(els.btnPlay, 'btnPlay', Boolean(runtimeFlags.playing));
+    setText(els.btnSpeed, 'btnSpeed', `${runtimeFlags.speed.toFixed(1)}× Speed`);
+    setText(els.btnDaycycle, 'btnDaycycle', runtimeFlags.autoDay ? '☀ Day Cycle: On' : '☀ Day Cycle: Off');
+    setPressed(els.btnDaycycle, 'btnDaycycle', Boolean(runtimeFlags.autoDay));
+    setPressed(els.btnPresent, 'btnPresent', isPresent);
+    setPressed(els.btnPresentTop, 'btnPresentTop', isPresent);
 
-    // Thermal & Exergy Cascade card
-    const t = sim.thermal;
+    // Thermal & Surplus Cascade card
+    thermalCapturedBar.update(`${t.capturedHeatMw.toFixed(2)} MW_th`, (t.capturedHeatMw / 10) * 100);
+    thermalDemandBar.update(`${t.totalNetworkDemandMw.toFixed(2)} MW_th`, (t.totalNetworkDemandMw / 10) * 100);
+
     const isSurplus = t.netThermalBalanceMw >= 0;
     const balSign = isSurplus ? '+' : '−';
     const balClass = isSurplus ? 'accent-emerald' : 'accent-amber';
 
-    let modeDetails = '';
-    if (isSurplus) {
-      modeDetails = `
-        <div class="kv-grid" style="margin-top:6px;">
-          <span class="kv-k">2,500 m³ Store Charge</span><span class="kv-v">${t.thermalStoreChargeMw.toFixed(2)} MW_th</span>
-          <span class="kv-k">SrBr₂ TCES (35 MWh_th)</span><span class="kv-v">${t.tcesChargeMw.toFixed(2)} MW_th</span>
-          <span class="kv-k">TI-PTES (2 MW / 16 MWh)</span><span class="kv-v">${t.tiPtesChargeMw.toFixed(2)} MW_th</span>
-          <span class="kv-k">Micro-ORC (≤440 kW_e)</span><span class="kv-v accent-emerald">${t.orcOutputKw.toFixed(1)} kW_e</span>
-          <span class="kv-k">MOF Chillers / Dry Cool</span><span class="kv-v">${t.mofChillerMw.toFixed(2)} / ${t.dryCoolerRejectionMw.toFixed(2)} MW</span>
-        </div>
-      `;
-    } else {
-      modeDetails = `
-        <div class="kv-grid" style="margin-top:6px;">
-          <span class="kv-k">Thermal Store Discharge</span><span class="kv-v accent-orange">${t.thermalStoreDischargeMw.toFixed(2)} MW_th</span>
-          <span class="kv-k">8.0 MW_th Backup HTHP</span><span class="kv-v accent-amber">${t.hthpThermalOutputMw.toFixed(2)} MW_th (COP ${t.hthpCop.toFixed(2)})</span>
-          <span class="kv-k">HTHP Electric Draw</span><span class="kv-v">${t.hthpElectricalMw.toFixed(2)} MW_e</span>
-          <span class="kv-k">Unmet Deficit</span><span class="kv-v accent-emerald">${t.unmetThermalDeficitMw.toFixed(2)} MW_th</span>
-        </div>
-      `;
+    thermalCoreKv.set('balance', `${balSign}${Math.abs(t.netThermalBalanceMw).toFixed(2)} MW_th`, balClass);
+    thermalCoreKv.set(
+      'annual',
+      `${INT_FORMATTER.format(Math.round(t.annualCapturedHeatMWh))} MWh (${t.annualGrossCoveragePct.toFixed(0)}% / ${t.annualCoveragePct.toFixed(0)}%)`
+    );
+    thermalCoreKv.set(
+      'primary',
+      `${t.primaryGrossFlowLs.toFixed(1)} L/s (${t.primaryGrossFlowLmin.toFixed(0)} L/m)`
+    );
+    thermalCoreKv.set(
+      'secondary',
+      `${t.secondaryGrossFlowLs.toFixed(1)} L/s (${t.secondaryGrossFlowLmin.toFixed(0)} L/m)`
+    );
+    thermalCoreKv.set(
+      'store',
+      `${(t.thermalStoreSoc * 100).toFixed(0)}% (${t.thermalStoreUsableMWh.toFixed(1)} MWh usable)`
+    );
+
+    if (lastSurplusMode !== isSurplus) {
+      lastSurplusMode = isSurplus;
+      thermalSurplusKv.el.hidden = !isSurplus;
+      thermalSurplusKv.el.classList.toggle('hidden', !isSurplus);
+      thermalDeficitKv.el.hidden = isSurplus;
+      thermalDeficitKv.el.classList.toggle('hidden', isSurplus);
     }
 
-    els.telThermal.innerHTML = `
-      ${barRow('Captured Heat (98% nom.)', `${t.capturedHeatMw.toFixed(2)} MW_th`, (t.capturedHeatMw / 10) * 100, '#ff6b2c')}
-      ${barRow('District Demand (7,500 homes)', `${t.districtDemandMw.toFixed(2)} MW_th`, (t.districtDemandMw / 10) * 100, '#22d3ee')}
-      <div class="kv-grid" style="margin-top:4px;">
-        <span class="kv-k">Net Thermal Balance</span><span class="kv-v ${balClass}">${balSign}${Math.abs(t.netThermalBalanceMw).toFixed(2)} MW_th</span>
-        <span class="kv-k">Annual Heat / Coverage</span><span class="kv-v">${Math.round(t.annualCapturedHeatMWh).toLocaleString()} MWh (${t.annualCoveragePct.toFixed(1)}%)</span>
-        <span class="kv-k">Primary 75°C (Gross/Net)</span><span class="kv-v">${t.primaryGrossFlowLmin.toFixed(1)} / ${t.primaryNetFlowLmin.toFixed(0)} L/min</span>
-        <span class="kv-k">Secondary 45°C Flow</span><span class="kv-v">${t.secondaryGrossFlowLmin.toFixed(1)} L/min (${t.secondaryGrossFlowLs.toFixed(2)} L/s)</span>
-        <span class="kv-k">2,500 m³ Thermal Store</span><span class="kv-v">${(t.thermalStoreSoc * 100).toFixed(0)}% (${t.thermalStoreEnergyMWh.toFixed(1)} MWh_th)</span>
-      </div>
-      ${modeDetails}
-    `;
+    if (isSurplus) {
+      thermalSurplusKv.set('storeCharge', `${t.thermalStoreChargeMw.toFixed(2)} MW_th`);
+      thermalSurplusKv.set('commSales', `${t.commercialHeatSalesMw.toFixed(2)} MW_th`);
+      thermalSurplusKv.set('orc', `${t.orcOutputKw.toFixed(1)} kW_e`);
+      thermalSurplusKv.set('dryCool', `${t.dryCoolerRejectionMw.toFixed(2)} MW_th`);
+    } else {
+      thermalDeficitKv.set('storeDischarge', `${t.thermalStoreDischargeMw.toFixed(2)} MW_th`);
+      thermalDeficitKv.set('hthpOut', `${t.hthpThermalOutputMw.toFixed(2)} MW_th (COP ${t.hthpCop.toFixed(2)})`);
+      thermalDeficitKv.set('hthpElec', `${(t.hthpElectricalMw + t.scenarioBElecMw).toFixed(2)} MW_e`);
+      thermalDeficitKv.set('unmet', `${t.unmetThermalDeficitMw.toFixed(2)} MW_th`);
+    }
 
     // Electrical, Hydrology & Optical Card
-    const e = sim.electrical;
-    const h = sim.hydrology;
-    const o = sim.optical;
-    els.telGridWater.innerHTML = `
-      ${barRow('10,000 m³ Drought Cistern', `${h.cisternVolumeM3.toFixed(0)} m³ (${h.droughtAutonomyDays.toFixed(1)} d)`, h.cisternSoc * 100, '#0ea5e9')}
-      <div class="kv-grid" style="margin-top:4px;">
-        <span class="kv-k">Gross / Net Grid Annual</span><span class="kv-v">${Math.round(e.annualGrossMWh).toLocaleString()} / ${Math.round(e.annualNetGridMWh).toLocaleString()} MWh_e</span>
-        <span class="kv-k">12 MW_p PV / Net Import</span><span class="kv-v">${e.pvOutputMw.toFixed(2)} MW / ${e.netGridDrawMw.toFixed(2)} MW</span>
-        <span class="kv-k">8 MW / 32 MWh BESS</span><span class="kv-v">${e.bessMode}</span>
-        <span class="kv-k">Rain Harvest (120k m²)</span><span class="kv-v">${Math.round(h.annualRainHarvestM3).toLocaleString()} m³/yr</span>
-        <span class="kv-k">Avoided Cooling Water</span><span class="kv-v accent-cyan">${h.avoidedPotableWaterM3Yr.toLocaleString()} m³/yr</span>
-        <span class="kv-k">Local V2X vs Cloud (50 km/h)</span><span class="kv-v accent-violet">${o.localBlindTravelMm.toFixed(2)} mm vs ${o.cloudBlindTravelM.toFixed(2)} m</span>
-        <span class="kv-k">Local Breakout / WAN Saved</span><span class="kv-v">${o.localBreakoutPct}% / ${o.wanPowerSavedMWhYr.toFixed(0)} MWh_e/yr</span>
-      </div>
-    `;
+    cisternBar.update(`${h.cisternVolumeM3.toFixed(0)} m³ (${h.droughtAutonomyDays.toFixed(1)} d)`, h.cisternSoc * 100);
+    gridWaterKv.set(
+      'gridAnnual',
+      `${INT_FORMATTER.format(Math.round(e.annualGrossMWh))} / ${INT_FORMATTER.format(Math.round(e.annualNetGridMWh))} MWh_e`
+    );
+    gridWaterKv.set('pvImport', `${e.pvOutputMw.toFixed(2)} MW / ${e.netGridDrawMw.toFixed(2)} MW`);
+    gridWaterKv.set('bess', e.bessMode);
+    gridWaterKv.set('rain', `${INT_FORMATTER.format(Math.round(h.annualRainHarvestM3))} m³/yr`);
+    gridWaterKv.set('waterSaved', '157.7–175.2k m³/yr');
+    gridWaterKv.set(
+      'v2x',
+      `${o.localBlindTravelMm.toFixed(2)} mm vs ${o.cloudBlindTravelM.toFixed(2)} m`
+    );
+    gridWaterKv.set('breakout', `${o.localBreakoutPct}% / ${o.wanPowerSavedMWhYr.toFixed(0)} MWh_e/yr`);
 
     // Financials & Resident Survey
-    const f = sim.financial;
-    const sv = sim.survey;
-    els.telFinance.innerHTML = `
-      <div class="kv-grid">
-        <span class="kv-k">Case 2 CapEx vs Counterfactual</span><span class="kv-v">€${f.CAPEX_TOTAL_M}M vs €${f.COUNTERFACTUAL_CAPEX_M}M</span>
-        <span class="kv-k">EBITDA / Simple Payback</span><span class="kv-v accent-emerald">+€${f.EBITDA_ANNUAL_M.toFixed(2)}M/yr · ${f.SIMPLE_PAYBACK_YR} yr</span>
-        <span class="kv-k">30-Yr IRR / NPV @ 8%</span><span class="kv-v">${f.IRR_PCT}% · +€${f.NPV_8PCT_M}M</span>
-        <span class="kv-k">Avoided Carbon (Heat + PUE)</span><span class="kv-v accent-emerald">${Math.round(f.totalAvoidedCo2TonYr).toLocaleString()} tCO₂/yr</span>
-        <span class="kv-k">Survey Comfort / Recycled H₂O</span><span class="kv-v">${sv.dcComfortScore}/5 · ${sv.recycledWaterScore}/5 (N=${sv.sampleSize})</span>
-      </div>
-    `;
+    financeKv.set('capex', `€${f.CAPEX_TOTAL_M.toFixed(2)}M (€${f.CAPEX_DISTRICT_M}M + €${f.CAPEX_DC_OPERATOR_M}M)`);
+    financeKv.set('ebitda', `+€${f.EBITDA_ANNUAL_M.toFixed(1)}M/yr · ${f.SIMPLE_PAYBACK_YR.toFixed(1)} yr`);
+    financeKv.set('irr', `${f.IRR_PCT}% · +€${f.NPV_8PCT_M}M (8%)`);
+    financeKv.set('utility', `${f.UTILITY_IRR_PCT}% · €${f.UTILITY_LCOH_NET_EUR_MWH}/MWh`);
+    financeKv.set('tco', `€${f.TCO_USCI_M}M / €${f.TCO_GAS_M}M / €${f.TCO_ASHP_M}M`);
+    financeKv.set('co2', `${co2Rounded} t/yr (Heat+PUE)`);
+    financeKv.set('survey', `${sv.dcComfortScore.toFixed(2)}/5 · ${sv.recycledWaterScore.toFixed(2)}/5`);
 
     updateInspector(sim);
   }

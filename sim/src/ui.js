@@ -10,6 +10,7 @@ const CAMERA_PRESET_LABELS = [
 ];
 
 const INT_FORMATTER = new Intl.NumberFormat();
+const THEME_STORAGE_KEY = 'rakda_theme';
 
 function formatClock(hoursFloat) {
   const wrapped = ((hoursFloat % 24) + 24) % 24;
@@ -120,6 +121,7 @@ export function createUI(callbacks) {
     scenarioDesc: document.getElementById('scenario-desc'),
     vaultFaultBtns: document.getElementById('vault-fault-btns'),
     cameraPresets: document.getElementById('camera-presets'),
+    metaThemeColor: document.getElementById('meta-theme-color'),
 
     sliderUtil: document.getElementById('slider-util'),
     sliderFcap: document.getElementById('slider-fcap'),
@@ -163,6 +165,7 @@ export function createUI(callbacks) {
     inspSpecs: document.getElementById('inspector-specs'),
     inspMetrics: document.getElementById('inspector-metrics'),
 
+    btnTheme: document.getElementById('btn-theme'),
     btnPlay: document.getElementById('btn-play'),
     btnSpeed: document.getElementById('btn-speed'),
     btnDaycycle: document.getElementById('btn-daycycle'),
@@ -201,30 +204,80 @@ export function createUI(callbacks) {
     }
   }
 
+  function setPressed(el, key, pressed) {
+    const str = pressed ? 'true' : 'false';
+    if (boolCache[key] !== str) {
+      el.setAttribute('aria-pressed', str);
+      boolCache[key] = str;
+    }
+  }
+
+  // Theme initialization & toggle (Dark Slate <-> rakda.ltd Light Paper)
+  function applyTheme(isLight) {
+    document.body.classList.toggle('theme-light', isLight);
+    if (els.btnTheme) {
+      els.btnTheme.textContent = isLight ? '☾ Slate' : '☀ Paper';
+      els.btnTheme.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+    }
+    if (els.metaThemeColor) {
+      els.metaThemeColor.setAttribute('content', isLight ? '#FAF7F2' : '#0b1220');
+    }
+  }
+
+  let lightTheme = false;
+  try {
+    lightTheme = window.localStorage?.getItem(THEME_STORAGE_KEY) === 'light';
+  } catch {
+    lightTheme = false;
+  }
+  applyTheme(lightTheme);
+
+  if (els.btnTheme) {
+    els.btnTheme.addEventListener('click', () => {
+      lightTheme = !lightTheme;
+      applyTheme(lightTheme);
+      try {
+        window.localStorage?.setItem(THEME_STORAGE_KEY, lightTheme ? 'light' : 'dark');
+      } catch {
+        // Ignore storage restrictions
+      }
+    });
+  }
+
+  // Auto-collapse side drawers on narrow mobile viewports (<= 900px)
+  function setPanelCollapsed(panel, toggleBtn, collapsed) {
+    panel.classList.toggle('collapsed', collapsed);
+    toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  }
+
+  if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+    setPanelCollapsed(els.leftPanel, els.btnToggleLeft, true);
+    setPanelCollapsed(els.rightPanel, els.btnToggleRight, true);
+  }
+
   let inspectedKey = null;
   let renderedInspectedKey = null;
   let inspectorMetricNodes = [];
 
   // Build persistent DOM structures for telemetry cards once (zero innerHTML thrashing)
   const thermalCapturedBar = createBarBlock('Captured Heat (98% nom.)', '#ff6b2c');
-  const thermalDemandBar = createBarBlock('District Demand (7,500 homes)', '#22d3ee');
+  const thermalDemandBar = createBarBlock('Network Demand (Incl. 0.39 MW loss)', '#22d3ee');
   const thermalCoreKv = createKvGrid(
     [
       ['balance', 'Net Thermal Balance', ''],
-      ['annual', 'Annual Heat / Coverage', ''],
+      ['annual', 'Annual Heat / Net Cov.', ''],
       ['primary', 'Primary 75°C (Gross/Net)', ''],
       ['secondary', 'Secondary 45°C Flow', ''],
-      ['store', '2,500 m³ Thermal Store', ''],
+      ['store', '2,500 m³ Store (101.6 MWh)', ''],
     ],
     '4px'
   );
   const thermalSurplusKv = createKvGrid(
     [
       ['storeCharge', '2,500 m³ Store Charge', ''],
-      ['tces', 'SrBr₂ TCES (35 MWh_th)', ''],
-      ['tiPtes', 'TI-PTES (2 MW / 16 MWh)', ''],
-      ['orc', 'Micro-ORC (≤440 kW_e)', 'accent-emerald'],
-      ['mofDry', 'MOF Chillers / Dry Cool', ''],
+      ['commSales', 'Tier 1: 75°C Heat Sales', 'accent-orange'],
+      ['orc', 'Tier 2: Micro-ORC (~0.4 MW_e)', 'accent-emerald'],
+      ['dryCool', 'Tier 3: N+1 Dry Coolers', ''],
     ],
     '6px'
   );
@@ -249,14 +302,14 @@ export function createUI(callbacks) {
     thermalDeficitKv.el
   );
 
-  const cisternBar = createBarBlock('10,000 m³ Drought Cistern', '#0ea5e9');
+  const cisternBar = createBarBlock('10,000 m³ Cistern (44 d Reserve)', '#0ea5e9');
   const gridWaterKv = createKvGrid(
     [
       ['gridAnnual', 'Gross / Net Grid Annual', ''],
       ['pvImport', '12 MW_p PV / Net Import', ''],
       ['bess', '8 MW / 32 MWh BESS', ''],
-      ['rain', 'Rain Harvest (120k m²)', ''],
-      ['waterSaved', 'Avoided Cooling Water', 'accent-cyan'],
+      ['rain', 'Rain Harvest (10 ha inert)', ''],
+      ['waterSaved', 'Avoided Tower Water', 'accent-cyan'],
       ['v2x', 'Local V2X vs Cloud (50 km/h)', 'accent-violet'],
       ['breakout', 'Local Breakout / WAN Saved', ''],
     ],
@@ -266,11 +319,13 @@ export function createUI(callbacks) {
 
   const financeKv = createKvGrid(
     [
-      ['capex', 'Case 2 CapEx vs Counterfactual', ''],
-      ['ebitda', 'EBITDA / Simple Payback', 'accent-emerald'],
-      ['irr', '30-Yr IRR / NPV @ 8%', ''],
-      ['co2', 'Avoided Carbon (Heat + PUE)', 'accent-emerald'],
-      ['survey', 'Survey Comfort / Recycled H₂O', ''],
+      ['capex', 'CapEx (Utility + DC)', ''],
+      ['ebitda', 'Case 2 EBITDA / Payback', 'accent-emerald'],
+      ['irr', 'Case 2 IRR / NPV @ 8%', ''],
+      ['utility', 'Case 1 Utility IRR / LCOH', ''],
+      ['tco', '30-Yr TCO (USCI/Gas/ASHP)', ''],
+      ['co2', 'Avoided CO₂ (Heat + PUE)', 'accent-emerald'],
+      ['survey', 'Survey Comfort / H₂O (N=105)', ''],
     ],
     ''
   );
@@ -281,7 +336,9 @@ export function createUI(callbacks) {
   let activeScenarioId = null;
   for (const preset of SCENARIO_LIST) {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'preset-btn';
+    btn.setAttribute('aria-pressed', 'false');
     btn.innerHTML = `<span class="p-title">${preset.shortLabel}</span><span class="p-badge">${preset.badge}</span>`;
     btn.addEventListener('click', () => callbacks.onPresetSelect(preset.id));
     els.scenarioBtns.appendChild(btn);
@@ -293,7 +350,9 @@ export function createUI(callbacks) {
   const lastVaultFaults = [false, false, false, false, false];
   for (let i = 0; i < 5; i++) {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'vault-btn';
+    btn.setAttribute('aria-pressed', 'false');
     btn.textContent = `V${i + 1} OK`;
     btn.addEventListener('click', () => callbacks.onToggleVaultFault(i));
     els.vaultFaultBtns.appendChild(btn);
@@ -305,14 +364,22 @@ export function createUI(callbacks) {
   let activeCamIdx = 0;
   function setActiveCamBtn(idx) {
     if (activeCamIdx === idx) return;
-    if (camBtns[activeCamIdx]) camBtns[activeCamIdx].classList.remove('active');
-    if (camBtns[idx]) camBtns[idx].classList.add('active');
+    if (camBtns[activeCamIdx]) {
+      camBtns[activeCamIdx].classList.remove('active');
+      camBtns[activeCamIdx].setAttribute('aria-pressed', 'false');
+    }
+    if (camBtns[idx]) {
+      camBtns[idx].classList.add('active');
+      camBtns[idx].setAttribute('aria-pressed', 'true');
+    }
     activeCamIdx = idx;
   }
 
   CAMERA_PRESET_LABELS.forEach((cp, idx) => {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'cam-btn' + (idx === 0 ? ' active' : '');
+    btn.setAttribute('aria-pressed', idx === 0 ? 'true' : 'false');
     btn.textContent = cp.label;
     btn.addEventListener('click', () => {
       setActiveCamBtn(idx);
@@ -322,8 +389,7 @@ export function createUI(callbacks) {
     camBtns.push(btn);
   });
 
-  // Leading-edge + rAF-coalesced slider dispatch:
-  // Immediate on first event (0 latency for clicks/tests), coalesced to 1/frame during rapid drags.
+  // Leading-edge + rAF-coalesced slider dispatch
   let pendingStatePatch = null;
   let pendingGroundOpacity = null;
   let sliderRafId = 0;
@@ -433,8 +499,14 @@ export function createUI(callbacks) {
   });
   els.btnPresent.addEventListener('click', () => callbacks.onAction('togglePresent'));
   els.btnPresentTop.addEventListener('click', () => callbacks.onAction('togglePresent'));
-  els.btnToggleLeft.addEventListener('click', () => els.leftPanel.classList.toggle('collapsed'));
-  els.btnToggleRight.addEventListener('click', () => els.rightPanel.classList.toggle('collapsed'));
+  els.btnToggleLeft.addEventListener('click', () => {
+    const nextCollapsed = !els.leftPanel.classList.contains('collapsed');
+    setPanelCollapsed(els.leftPanel, els.btnToggleLeft, nextCollapsed);
+  });
+  els.btnToggleRight.addEventListener('click', () => {
+    const nextCollapsed = !els.rightPanel.classList.contains('collapsed');
+    setPanelCollapsed(els.rightPanel, els.btnToggleRight, nextCollapsed);
+  });
 
   // Keyboard shortcuts
   window.addEventListener('keydown', (e) => {
@@ -460,10 +532,14 @@ export function createUI(callbacks) {
   function syncControlsFromState(state, groundOpacity) {
     if (activeScenarioId !== state.scenarioId) {
       if (activeScenarioId && presetBtnMap.has(activeScenarioId)) {
-        presetBtnMap.get(activeScenarioId).classList.remove('active');
+        const prevBtn = presetBtnMap.get(activeScenarioId);
+        prevBtn.classList.remove('active');
+        prevBtn.setAttribute('aria-pressed', 'false');
       }
       if (presetBtnMap.has(state.scenarioId)) {
-        presetBtnMap.get(state.scenarioId).classList.add('active');
+        const nextBtn = presetBtnMap.get(state.scenarioId);
+        nextBtn.classList.add('active');
+        nextBtn.setAttribute('aria-pressed', 'true');
       }
       activeScenarioId = state.scenarioId;
 
@@ -471,7 +547,7 @@ export function createUI(callbacks) {
       setText(
         els.scenarioDesc,
         'scenarioDesc',
-        preset ? preset.description : 'Custom interactive engineering configuration (live Draft 3.2 equations).'
+        preset ? preset.description : 'Custom interactive engineering configuration (live RAKDA USCI equations).'
       );
     }
 
@@ -503,12 +579,15 @@ export function createUI(callbacks) {
     setChecked(els.toggleSdn, 'sdn', Boolean(state.sdnEnabled));
     setChecked(els.toggleScenarioB, 'scenarioB', Boolean(state.hthpScenarioB));
 
+    setPressed(els.btnXray, 'btnXray', groundOpacity <= 0.4);
+
     for (let i = 0; i < faultBtnList.length; i++) {
       const faulted = Boolean(state.vaultFaults[i]);
       if (lastVaultFaults[i] !== faulted) {
         lastVaultFaults[i] = faulted;
         const btn = faultBtnList[i];
         btn.classList.toggle('faulted', faulted);
+        btn.setAttribute('aria-pressed', faulted ? 'true' : 'false');
         btn.textContent = faulted ? `V${i + 1} FLT` : `V${i + 1} OK`;
       }
     }
@@ -518,7 +597,6 @@ export function createUI(callbacks) {
     if (!inspectedKey || !SUBSYSTEM_INFO[inspectedKey]) return;
     const info = SUBSYSTEM_INFO[inspectedKey];
 
-    // Static metadata and specs are only rebuilt when the selected subsystem changes
     if (renderedInspectedKey !== inspectedKey) {
       renderedInspectedKey = inspectedKey;
       setText(els.inspBadge, 'inspBadge', info.category);
@@ -586,23 +664,28 @@ export function createUI(callbacks) {
     const sv = sim.survey;
 
     const co2Rounded = INT_FORMATTER.format(Math.round(f.totalAvoidedCo2TonYr));
+    const isPresent = document.body.classList.contains('presentation-mode');
 
-    // Top KPI Pills (diffed via textCache)
+    // Top KPI Pills
     setText(els.kpiIt, 'kpiIt', `${e.totalItMw.toFixed(2)} MW`);
     setText(els.kpiPue, 'kpiPue', `${e.pue.toFixed(3)}`);
     setText(els.kpiCov, 'kpiCov', `${t.annualCoveragePct.toFixed(1)}%`);
     setText(els.kpiRtt, 'kpiRtt', `${o.activeLocalE2eRttUs.toFixed(1)} μs`);
     setText(els.kpiCo2, 'kpiCo2', `${co2Rounded} t/yr`);
-    setText(els.kpiNpv, 'kpiNpv', `+€${f.NPV_4PCT_M.toFixed(2)}M`);
+    setText(els.kpiNpv, 'kpiNpv', `+€${f.NPV_4PCT_M.toFixed(1)}M`);
 
     // Dock button states
     setText(els.btnPlay, 'btnPlay', runtimeFlags.playing ? '⏸ Pause' : '▶ Play');
+    setPressed(els.btnPlay, 'btnPlay', Boolean(runtimeFlags.playing));
     setText(els.btnSpeed, 'btnSpeed', `${runtimeFlags.speed.toFixed(1)}× Speed`);
     setText(els.btnDaycycle, 'btnDaycycle', runtimeFlags.autoDay ? '☀ Day Cycle: On' : '☀ Day Cycle: Off');
+    setPressed(els.btnDaycycle, 'btnDaycycle', Boolean(runtimeFlags.autoDay));
+    setPressed(els.btnPresent, 'btnPresent', isPresent);
+    setPressed(els.btnPresentTop, 'btnPresentTop', isPresent);
 
-    // Thermal & Exergy Cascade card (targeted DOM node updates)
+    // Thermal & Surplus Cascade card
     thermalCapturedBar.update(`${t.capturedHeatMw.toFixed(2)} MW_th`, (t.capturedHeatMw / 10) * 100);
-    thermalDemandBar.update(`${t.districtDemandMw.toFixed(2)} MW_th`, (t.districtDemandMw / 10) * 100);
+    thermalDemandBar.update(`${t.totalNetworkDemandMw.toFixed(2)} MW_th`, (t.totalNetworkDemandMw / 10) * 100);
 
     const isSurplus = t.netThermalBalanceMw >= 0;
     const balSign = isSurplus ? '+' : '−';
@@ -611,19 +694,19 @@ export function createUI(callbacks) {
     thermalCoreKv.set('balance', `${balSign}${Math.abs(t.netThermalBalanceMw).toFixed(2)} MW_th`, balClass);
     thermalCoreKv.set(
       'annual',
-      `${INT_FORMATTER.format(Math.round(t.annualCapturedHeatMWh))} MWh (${t.annualCoveragePct.toFixed(1)}%)`
+      `${INT_FORMATTER.format(Math.round(t.annualCapturedHeatMWh))} MWh (${t.annualGrossCoveragePct.toFixed(0)}% / ${t.annualCoveragePct.toFixed(0)}%)`
     );
     thermalCoreKv.set(
       'primary',
-      `${t.primaryGrossFlowLmin.toFixed(1)} / ${t.primaryNetFlowLmin.toFixed(0)} L/min`
+      `${t.primaryGrossFlowLs.toFixed(1)} L/s (${t.primaryGrossFlowLmin.toFixed(0)} L/m)`
     );
     thermalCoreKv.set(
       'secondary',
-      `${t.secondaryGrossFlowLmin.toFixed(1)} L/min (${t.secondaryGrossFlowLs.toFixed(2)} L/s)`
+      `${t.secondaryGrossFlowLs.toFixed(1)} L/s (${t.secondaryGrossFlowLmin.toFixed(0)} L/m)`
     );
     thermalCoreKv.set(
       'store',
-      `${(t.thermalStoreSoc * 100).toFixed(0)}% (${t.thermalStoreEnergyMWh.toFixed(1)} MWh_th)`
+      `${(t.thermalStoreSoc * 100).toFixed(0)}% (${t.thermalStoreUsableMWh.toFixed(1)} MWh usable)`
     );
 
     if (lastSurplusMode !== isSurplus) {
@@ -636,14 +719,13 @@ export function createUI(callbacks) {
 
     if (isSurplus) {
       thermalSurplusKv.set('storeCharge', `${t.thermalStoreChargeMw.toFixed(2)} MW_th`);
-      thermalSurplusKv.set('tces', `${t.tcesChargeMw.toFixed(2)} MW_th`);
-      thermalSurplusKv.set('tiPtes', `${t.tiPtesChargeMw.toFixed(2)} MW_th`);
+      thermalSurplusKv.set('commSales', `${t.commercialHeatSalesMw.toFixed(2)} MW_th`);
       thermalSurplusKv.set('orc', `${t.orcOutputKw.toFixed(1)} kW_e`);
-      thermalSurplusKv.set('mofDry', `${t.mofChillerMw.toFixed(2)} / ${t.dryCoolerRejectionMw.toFixed(2)} MW`);
+      thermalSurplusKv.set('dryCool', `${t.dryCoolerRejectionMw.toFixed(2)} MW_th`);
     } else {
       thermalDeficitKv.set('storeDischarge', `${t.thermalStoreDischargeMw.toFixed(2)} MW_th`);
       thermalDeficitKv.set('hthpOut', `${t.hthpThermalOutputMw.toFixed(2)} MW_th (COP ${t.hthpCop.toFixed(2)})`);
-      thermalDeficitKv.set('hthpElec', `${t.hthpElectricalMw.toFixed(2)} MW_e`);
+      thermalDeficitKv.set('hthpElec', `${(t.hthpElectricalMw + t.scenarioBElecMw).toFixed(2)} MW_e`);
       thermalDeficitKv.set('unmet', `${t.unmetThermalDeficitMw.toFixed(2)} MW_th`);
     }
 
@@ -656,19 +738,21 @@ export function createUI(callbacks) {
     gridWaterKv.set('pvImport', `${e.pvOutputMw.toFixed(2)} MW / ${e.netGridDrawMw.toFixed(2)} MW`);
     gridWaterKv.set('bess', e.bessMode);
     gridWaterKv.set('rain', `${INT_FORMATTER.format(Math.round(h.annualRainHarvestM3))} m³/yr`);
-    gridWaterKv.set('waterSaved', `${INT_FORMATTER.format(h.avoidedPotableWaterM3Yr)} m³/yr`);
+    gridWaterKv.set('waterSaved', '157.7–175.2k m³/yr');
     gridWaterKv.set(
       'v2x',
       `${o.localBlindTravelMm.toFixed(2)} mm vs ${o.cloudBlindTravelM.toFixed(2)} m`
     );
     gridWaterKv.set('breakout', `${o.localBreakoutPct}% / ${o.wanPowerSavedMWhYr.toFixed(0)} MWh_e/yr`);
 
-    // Financials & Resident Survey (mostly static; zero DOM writes unless values change)
-    financeKv.set('capex', `€${f.CAPEX_TOTAL_M}M vs €${f.COUNTERFACTUAL_CAPEX_M}M`);
-    financeKv.set('ebitda', `+€${f.EBITDA_ANNUAL_M.toFixed(2)}M/yr · ${f.SIMPLE_PAYBACK_YR} yr`);
-    financeKv.set('irr', `${f.IRR_PCT}% · +€${f.NPV_8PCT_M}M`);
-    financeKv.set('co2', `${co2Rounded} tCO₂/yr`);
-    financeKv.set('survey', `${sv.dcComfortScore}/5 · ${sv.recycledWaterScore}/5 (N=${sv.sampleSize})`);
+    // Financials & Resident Survey
+    financeKv.set('capex', `€${f.CAPEX_TOTAL_M.toFixed(2)}M (€${f.CAPEX_DISTRICT_M}M + €${f.CAPEX_DC_OPERATOR_M}M)`);
+    financeKv.set('ebitda', `+€${f.EBITDA_ANNUAL_M.toFixed(1)}M/yr · ${f.SIMPLE_PAYBACK_YR.toFixed(1)} yr`);
+    financeKv.set('irr', `${f.IRR_PCT}% · +€${f.NPV_8PCT_M}M (8%)`);
+    financeKv.set('utility', `${f.UTILITY_IRR_PCT}% · €${f.UTILITY_LCOH_NET_EUR_MWH}/MWh`);
+    financeKv.set('tco', `€${f.TCO_USCI_M}M / €${f.TCO_GAS_M}M / €${f.TCO_ASHP_M}M`);
+    financeKv.set('co2', `${co2Rounded} t/yr (Heat+PUE)`);
+    financeKv.set('survey', `${sv.dcComfortScore.toFixed(2)}/5 · ${sv.recycledWaterScore.toFixed(2)}/5`);
 
     updateInspector(sim);
   }

@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RAKDA Ltd. (Group A-10) — 2045 Circular Urban Digital Twin</title>
+  <meta name="description" content="RAKDA Ltd. (Group A-10) — 10.0 MW Subterranean Data Centre &amp; 20,000-Resident Circular District (2045) interactive 3D engineering digital twin for TCD 1E17 EP2 (RAKDA USCI, Nov 2026)." />
+  <meta id="meta-theme-color" name="theme-color" content="#0b1220" />
+  <meta property="og:title" content="RAKDA Ltd. — 2045 Circular Urban Digital Twin" />
+  <meta property="og:description" content="Interactive 3D engineering simulation of a 10.0 MW subterranean liquid-cooled data centre heating 7,500 homes in a 180 ha Dublin circular district." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://zetbcn.github.io/EP2-Proj-RAKDA/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231A0F3C'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23FF5C9A' stroke-width='4'/%3E%3Cpath d='M23 43V21h11c5 0 8 2.8 8 7.2 0 3.4-1.8 5.6-4.8 6.5L43 43h-6.2l-5.1-7.4H28.5V43H23zm5.5-11.8h5c2.1 0 3.3-1.1 3.3-2.9s-1.2-2.9-3.3-2.9h-5v5.8z' fill='%23FAF7F2'/%3E%3Ccircle cx='47' cy='17' r='4' fill='%23FF5C9A'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="./styles.css" />
   <script type="importmap">
     {
@@ -29,11 +36,16 @@
         <span class="brand-badge">RAKDA · A-10</span>
         <div class="brand-titles">
           <h1>10.0 MW Subterranean Data Centre &amp; 20,000-Resident Circular District (2045)</h1>
-          <p class="subtitle">Trinity College Dublin 1E17 EP2 · Draft 3.2 Engineering Digital Twin</p>
+          <p class="subtitle">
+            Trinity College Dublin 1E17 EP2 · RAKDA USCI (Nov 2026) ·
+            <a class="brand-link" href="https://rakda.ltd/" target="_blank" rel="noopener noreferrer" title="Rakda Ltd. website">rakda.ltd</a>
+            ·
+            <a class="brand-link" href="https://github.com/ZeTBCN/EP2-Proj-RAKDA" target="_blank" rel="noopener noreferrer" title="GitHub Repository">GitHub</a>
+          </p>
         </div>
       </div>
 
-      <div class="kpi-strip">
+      <div class="kpi-strip" aria-live="polite" aria-label="Key Performance Indicators">
         <div class="kpi-pill">
           <span class="kpi-label">IT Load</span>
           <strong id="kpi-it" class="kpi-val accent-cyan">10.00 MW</strong>
@@ -43,8 +55,8 @@
           <strong id="kpi-pue" class="kpi-val accent-emerald">1.015</strong>
         </div>
         <div class="kpi-pill">
-          <span class="kpi-label">Heat Coverage</span>
-          <strong id="kpi-cov" class="kpi-val accent-orange">228.3%</strong>
+          <span class="kpi-label">Net Heat Cov.</span>
+          <strong id="kpi-cov" class="kpi-val accent-orange">209.2%</strong>
         </div>
         <div class="kpi-pill">
           <span class="kpi-label">6G V2X RTT</span>
@@ -52,30 +64,31 @@
         </div>
         <div class="kpi-pill">
           <span class="kpi-label">Avoided CO₂</span>
-          <strong id="kpi-co2" class="kpi-val accent-emerald">23,842 t/yr</strong>
+          <strong id="kpi-co2" class="kpi-val accent-emerald">18,490 t/yr</strong>
         </div>
         <div class="kpi-pill">
           <span class="kpi-label">NPV @ 4%</span>
-          <strong id="kpi-npv" class="kpi-val accent-amber">+€232.98M</strong>
+          <strong id="kpi-npv" class="kpi-val accent-amber">+€189.0M</strong>
         </div>
       </div>
 
       <div class="top-actions">
-        <button id="btn-toggle-left" class="icon-btn" title="Toggle Controls Panel">Controls</button>
-        <button id="btn-toggle-right" class="icon-btn" title="Toggle Telemetry Panel">Telemetry</button>
-        <button id="btn-present-top" class="icon-btn primary-btn" title="Presentation Mode (H)">Present (H)</button>
+        <button id="btn-theme" class="icon-btn" type="button" aria-pressed="false" title="Toggle Dark Slate / Rakda Light Paper Theme">☀ Paper</button>
+        <button id="btn-toggle-left" class="icon-btn" type="button" aria-expanded="true" aria-controls="left-panel" title="Toggle Controls Panel">Controls</button>
+        <button id="btn-toggle-right" class="icon-btn" type="button" aria-expanded="true" aria-controls="right-panel" title="Toggle Telemetry Panel">Telemetry</button>
+        <button id="btn-present-top" class="icon-btn primary-btn" type="button" aria-pressed="false" title="Presentation Mode (H)">Present (H)</button>
       </div>
     </header>
 
     <!-- Left Control Panel -->
-    <aside id="left-panel" class="side-panel left-panel glass-panel">
+    <aside id="left-panel" class="side-panel left-panel glass-panel" aria-label="Simulation Controls">
       <section class="panel-section">
         <div class="section-header">
           <h2>Engineering Scenarios</h2>
           <span class="tag">7 Presets</span>
         </div>
         <div id="scenario-buttons" class="preset-grid"></div>
-        <p id="scenario-desc" class="scenario-desc"></p>
+        <p id="scenario-desc" class="scenario-desc" aria-live="polite"></p>
       </section>
 
       <section class="panel-section">
@@ -136,7 +149,7 @@
       <section class="panel-section">
         <div class="section-header">
           <h2>Faults &amp; SDN Control</h2>
-          <span class="tag">74.9× vs Pump</span>
+          <span class="tag">70.1× vs EN 253</span>
         </div>
 
         <label class="switch-row">
@@ -145,7 +158,7 @@
         </label>
 
         <label class="switch-row">
-          <span>Scenario B HTHP (45°C → 70°C)</span>
+          <span>Scenario B HTHP (40°C → 75°C)</span>
           <input id="toggle-scenariob" type="checkbox" />
         </label>
 
@@ -163,7 +176,7 @@
           <label class="check-pill"><input id="layer-surface" type="checkbox" checked /> Surface District</label>
           <label class="check-pill"><input id="layer-heatmap" type="checkbox" /> Thermal Heat-Map</label>
           <label class="check-pill"><input id="layer-loop1" type="checkbox" checked /> Loop 1 (75°C)</label>
-          <label class="check-pill"><input id="layer-loop2" type="checkbox" checked /> Loop 2 (5GDHC)</label>
+          <label class="check-pill"><input id="layer-loop2" type="checkbox" checked /> Loop 2 (EN 253)</label>
           <label class="check-pill"><input id="layer-loop3" type="checkbox" checked /> Loop 3 (Water/Rain)</label>
           <label class="check-pill"><input id="layer-optical" type="checkbox" checked /> Optical Ring</label>
           <label class="check-pill"><input id="layer-vaults" type="checkbox" checked /> Level −4 Vaults</label>
@@ -180,15 +193,15 @@
     </aside>
 
     <!-- Right Telemetry & Inspector Panel -->
-    <aside id="right-panel" class="side-panel right-panel glass-panel">
+    <aside id="right-panel" class="side-panel right-panel glass-panel" aria-label="Telemetry and Subsystem Inspector">
       <section id="inspector-card" class="panel-section inspector-card">
         <div class="section-header">
           <h2>Subsystem Inspector</h2>
           <span id="inspector-badge" class="tag cyan-tag">Click 3D Asset</span>
         </div>
-        <h3 id="inspector-title" class="inspector-title">Click any 3D Vault, Tank, Pod, PV, or Plaza</h3>
-        <p id="inspector-desc" class="inspector-desc">
-          Select a subterranean vault, 2,500 m³ thermal store, 10,000 m³ cistern, HTHP bank, TCES, TI-PTES, Micro-ORC, or surface asset in the 3D scene to inspect Draft 3.2 specifications and live telemetry.
+        <h3 id="inspector-title" class="inspector-title" aria-live="polite">Click any 3D Vault, Tank, Pod, PV, or Plaza</h3>
+        <p id="inspector-desc" class="inspector-desc" aria-live="polite">
+          Select a subterranean vault, 2,500 m³ thermal store, 10,000 m³ cistern, HTHP bank, Micro-ORC, dry coolers, or surface asset in the 3D scene to inspect RAKDA USCI (Nov 2026) specifications and live telemetry.
         </p>
         <ul id="inspector-specs" class="inspector-specs"></ul>
         <div id="inspector-metrics" class="kv-grid"></div>
@@ -196,7 +209,7 @@
 
       <section class="panel-section">
         <div class="section-header">
-          <h2>Thermal &amp; Exergy Balance</h2>
+          <h2>Thermal &amp; Surplus Cascade</h2>
           <span class="tag orange-tag">Loops 1 &amp; 2</span>
         </div>
         <div id="telemetry-thermal"></div>
@@ -213,7 +226,7 @@
       <section class="panel-section">
         <div class="section-header">
           <h2>30-Yr Economics &amp; Survey</h2>
-          <span class="tag amber-tag">Case 2 · N=109</span>
+          <span class="tag amber-tag">Case 2 · N=105</span>
         </div>
         <div id="telemetry-finance"></div>
       </section>
@@ -221,12 +234,12 @@
 
     <!-- Bottom Playback & Cutaway Dock -->
     <footer id="bottom-bar" class="bottom-dock glass-panel">
-      <button id="btn-play" class="dock-btn" title="Play / Pause (Space)">⏸ Pause</button>
-      <button id="btn-speed" class="dock-btn" title="Cycle Simulation Speed">1.0× Speed</button>
-      <button id="btn-daycycle" class="dock-btn" title="Auto Time-of-Day Cycle">☀ Day Cycle: Off</button>
-      <button id="btn-xray" class="dock-btn" title="Toggle X-Ray Cutaway (X)">◎ X-Ray (X)</button>
-      <button id="btn-reset" class="dock-btn" title="Reset Camera (R)">⟲ Reset View</button>
-      <button id="btn-present" class="dock-btn primary-btn" title="Toggle Presentation Mode (H)">⛶ Present (H)</button>
+      <button id="btn-play" class="dock-btn" type="button" aria-pressed="true" title="Play / Pause (Space)">⏸ Pause</button>
+      <button id="btn-speed" class="dock-btn" type="button" title="Cycle Simulation Speed">1.0× Speed</button>
+      <button id="btn-daycycle" class="dock-btn" type="button" aria-pressed="false" title="Auto Time-of-Day Cycle">☀ Day Cycle: Off</button>
+      <button id="btn-xray" class="dock-btn" type="button" aria-pressed="false" title="Toggle X-Ray Cutaway (X)">◎ X-Ray (X)</button>
+      <button id="btn-reset" class="dock-btn" type="button" title="Reset Camera (R)">⟲ Reset View</button>
+      <button id="btn-present" class="dock-btn primary-btn" type="button" aria-pressed="false" title="Toggle Presentation Mode (H)">⛶ Present (H)</button>
       <span class="shortcut-hint">Shortcuts: <b>1–6</b> Views · <b>X</b> X-Ray · <b>Space</b> Play · <b>H</b> Present · <b>Click 3D</b> Inspect</span>
     </footer>
   </div>

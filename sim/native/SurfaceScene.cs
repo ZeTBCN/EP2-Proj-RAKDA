@@ -1455,7 +1455,7 @@ namespace RakdaSim
             _guidewayMat.EmissiveIntensity = 0.65f + nightFactor * 0.70f + 0.12f * (float)Math.Sin(elapsed * 2.5f);
 
             // Dirty-checked residential heatmap color updates (zero redundant GPU uploads!)
-            float demandNorm = (float)((sim.Thermal.DistrictDemandMw - 1.45) / (9.52 - 1.45));
+            float demandNorm = (float)((sim.Thermal.DistrictDemandMw - 3.01) / (9.52 - 3.01));
             if (demandNorm < 0f) demandNorm = 0f;
             if (demandNorm > 1f) demandNorm = 1f;
             int demandBucket = heatmapVisible ? (int)Math.Round(demandNorm * 100f) : -1;

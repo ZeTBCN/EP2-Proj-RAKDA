@@ -741,7 +741,7 @@ namespace RakdaSim
             _internalElapsed = elapsed > 0f ? elapsed : (_internalElapsed + dt);
             float pulse = 0.88f + 0.18f * (float)Math.Sin(_internalElapsed * 3.4f);
 
-            float flowNorm = Math.Min(1.2f, (float)(sim.Thermal.PrimaryGrossFlowLmin / 4635.3));
+            float flowNorm = Math.Min(1.2f, (float)(sim.Thermal.PrimaryGrossFlowLmin / 4590.0));
             _phase1 = (_phase1 + dt * (0.24f + flowNorm * 0.52f)) % 1.0f;
 
             float demandNorm = Math.Min(1.2f, (float)(sim.Thermal.DistrictDemandMw / 9.52));
@@ -824,7 +824,7 @@ namespace RakdaSim
                 _l2OrcPipe.SetActive(orcOn, 1.35f * pulse, 0.22f);
                 UpdatePacketSlot(_l2PacketItems, ref _l2PacketSlots[11], (_phase2 * 1.60f + 0.50f) % 1.0f, orcOn, 1.0f, _l2PacketSlots[11].Color, true);
 
-                bool mofOn = sim.Thermal.MofChillerMw > 0.05;
+                bool mofOn = (sim.Thermal.CommercialHeatSalesMw + sim.Thermal.MofChillerMw) > 0.05;
                 _l2MofPipe.SetActive(mofOn, 1.25f * pulse, 0.22f);
                 UpdatePacketSlot(_l2PacketItems, ref _l2PacketSlots[12], (_phase2 * 1.50f + 0.70f) % 1.0f, mofOn, 1.0f, _l2PacketSlots[12].Color, true);
 

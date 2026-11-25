@@ -13,14 +13,14 @@ namespace RakdaSim
         private static int Main(string[] args)
         {
             RunTest("1. All 7 scenario presets produce finite outputs & 5 vaults", TestAllPresetsFinite);
-            RunTest("2. Nominal 2045 Design exact KPIs from SPEC.md", TestNominalKpis);
-            RunTest("3. Conservative Stress (u=0.70, f_cap=0.80) KPIs", TestConservativeStress);
-            RunTest("4. Winter Cold Snap (-5C) at 100% IT load (+0.28 MW_th surplus)", TestWinterColdSnap);
-            RunTest("5. Cold Snap + 60% Stress (-3.64 MW_th deficit) covered by store + HTHP", TestWinterStress60);
-            RunTest("6. Vault 3 Fault + SDN Reroute around optical ring", TestVault3FaultSdn);
-            RunTest("7. Summer Exergy Cascade energy conservation & 440 kW_e ORC cap", TestSummerExergyCascade);
-            RunTest("8. Dublin hydrological loop & 60-day drought resilience", TestHydrologyDrought);
-            RunTest("9. Optical latency, pod blind-travel, Financials & Survey KPIs", TestOpticalFinancialSurvey);
+            RunTest("2. Nominal 2045 Design exact KPIs from RAKDA-USCI.docx", TestNominalKpis);
+            RunTest("3. Cautious Base (u=0.70, f_cap=0.80) KPIs (130% gross / 120% net)", TestConservativeStress);
+            RunTest("4. Winter Design Day (-3C) at 100% IT load (9.91 vs 9.80 MW = -0.11 MW)", TestWinterColdSnap);
+            RunTest("5. Cautious Winter (-3C, u=0.70, f=0.80 -> 4.31 MW deficit) covered by store + HTHP", TestWinterStress60);
+            RunTest("6. Vault 3 Fault + SDN Reroute around optical ring (70.1x vs EN 253)", TestVault3FaultSdn);
+            RunTest("7. Summer Surplus 3-Tier Cascade energy conservation (no TI-PTES/TCES in base)", TestSummerExergyCascade);
+            RunTest("8. Dublin hydrological loop (55,620 m3/yr, 44-day drought reserve at 6,700 m3)", TestHydrologyDrought);
+            RunTest("9. Optical latency, Financials (Case 1 & 2, TCO) & Survey (N=105) KPIs", TestOpticalFinancialSurvey);
             RunTest("10. Inspector metadata & live metrics for all 16+ subsystem keys", TestSubsystemInspectors);
 
             Console.WriteLine();
@@ -127,15 +127,19 @@ namespace RakdaSim
 
             AssertNear(sim.Thermal.CapturedHeatMw, 9.80, 1e-6, "CapturedHeatMw");
             AssertEqual((int)Math.Round(sim.Thermal.AnnualCapturedHeatMWh), 85848, "AnnualCapturedHeatMWh");
-            AssertNear(sim.Thermal.AnnualCoveragePct, 228.258, 0.1, "AnnualCoveragePct");
+            AssertNear(sim.Thermal.AnnualGrossCoveragePct, 228.25, 0.3, "AnnualGrossCoveragePct");
+            AssertNear(sim.Thermal.AnnualCoveragePct, 209.22, 0.3, "AnnualCoveragePct");
 
-            AssertNear(sim.Thermal.PrimaryGrossFlowLmin, 4635.3, 0.05, "PrimaryGrossFlowLmin");
+            AssertNear(sim.Thermal.PrimaryGrossFlowLs, 76.5, 0.05, "PrimaryGrossFlowLs");
             AssertNear(sim.Thermal.PrimaryNetHeatMw, 7.84, 1e-6, "PrimaryNetHeatMw");
-            AssertNear(sim.Thermal.PrimaryNetFlowLmin, 4543.0, 0.5, "PrimaryNetFlowLmin");
-            AssertNear(sim.Thermal.SecondaryGrossFlowLmin, 1923.1, 0.05, "SecondaryGrossFlowLmin");
+            AssertNear(sim.Thermal.SecondaryGrossFlowLs, 32.0, 0.05, "SecondaryGrossFlowLs");
 
-            AssertNear(sim.Thermal.DistrictDemandMw, 4.293, 0.01, "DistrictDemandMw");
-            AssertNear(sim.Thermal.AnnualisedDemandMWh, 37610.0, 5.0, "AnnualisedDemandMWh");
+            AssertNear(sim.Thermal.DistrictDemandMw, 4.2936, 0.01, "DistrictDemandMw");
+            AssertNear(sim.Thermal.AnnualisedDemandMWh, 37612.0, 5.0, "AnnualisedDemandMWh");
+            AssertEqual(PhysicsEngine.RingLossWPerM, 13.0, "RingLossWPerM");
+            AssertEqual(PhysicsEngine.RingLossMWhYr, 3421.0, "RingLossMWhYr");
+            AssertEqual(PhysicsEngine.BufferTotalM3, 215.0, "BufferTotalM3");
+            AssertEqual(PhysicsEngine.VaultLifeYr, 100, "VaultLifeYr");
         }
 
         private static void TestConservativeStress()
@@ -144,28 +148,31 @@ namespace RakdaSim
             AssertNear(sim.Electrical.TotalItMw, 7.0, 1e-6, "TotalItMw");
             AssertNear(sim.Thermal.CapturedHeatMw, 5.60, 1e-6, "CapturedHeatMw");
             AssertEqual((int)Math.Round(sim.Thermal.AnnualCapturedHeatMWh), 49056, "AnnualCapturedHeatMWh");
-            AssertNear(sim.Thermal.AnnualCoveragePct, 130.43, 0.1, "AnnualCoveragePct");
+            AssertNear(sim.Thermal.AnnualGrossCoveragePct, 130.43, 0.2, "AnnualGrossCoveragePct");
+            AssertNear(sim.Thermal.AnnualCoveragePct, 119.55, 0.5, "AnnualCoveragePct");
         }
 
         private static void TestWinterColdSnap()
         {
             SimResult sim = PhysicsEngine.Compute(PhysicsEngine.GetPreset("winter_cold_snap").Params);
-            AssertNear(PhysicsEngine.ComputeDistrictDemandMw(-5.0), 9.52, 1e-6, "ComputeDistrictDemandMw(-5)");
+            AssertNear(PhysicsEngine.ComputeDistrictDemandMw(-3.0), 9.52, 1e-6, "ComputeDistrictDemandMw(-3)");
             AssertNear(sim.Thermal.DistrictDemandMw, 9.52, 1e-6, "DistrictDemandMw");
-            AssertNear(sim.Thermal.NetThermalBalanceMw, 0.28, 1e-6, "NetThermalBalanceMw");
-            AssertEqual(sim.Thermal.DeficitMw, 0.0, "DeficitMw");
+            AssertNear(sim.Thermal.TotalNetworkDemandMw, 9.91, 1e-6, "TotalNetworkDemandMw");
+            AssertNear(sim.Thermal.NetThermalBalanceMw, -0.11, 1e-6, "NetThermalBalanceMw");
+            AssertNear(sim.Thermal.DeficitMw, 0.11, 1e-6, "DeficitMw");
+            AssertEqual(sim.Thermal.UnmetThermalDeficitMw, 0.0, "UnmetThermalDeficitMw");
         }
 
         private static void TestWinterStress60()
         {
             SimResult sim = PhysicsEngine.Compute(PhysicsEngine.GetPreset("winter_stress_60").Params);
-            AssertNear(sim.Thermal.CapturedHeatMw, 5.88, 1e-6, "CapturedHeatMw");
-            AssertNear(sim.Thermal.DeficitMw, 3.64, 1e-6, "DeficitMw");
+            AssertNear(sim.Thermal.CapturedHeatMw, 5.60, 1e-6, "CapturedHeatMw");
+            AssertNear(sim.Thermal.DeficitMw, 4.31, 1e-6, "DeficitMw");
             AssertTrue(sim.Thermal.ThermalStoreDischargeMw > 0.0, "ThermalStoreDischargeMw > 0");
             AssertTrue(sim.Thermal.HthpThermalOutputMw > 0.0 && sim.Thermal.HthpThermalOutputMw <= 8.0, "HthpThermalOutputMw in (0, 8]");
-            AssertTrue(sim.Thermal.HthpCop >= 4.6 && sim.Thermal.HthpCop <= 6.9, "HthpCop in [4.6, 6.9]");
+            AssertTrue(sim.Thermal.HthpCop >= 4.0 && sim.Thermal.HthpCop <= 6.0, "HthpCop in [4.0, 6.0]");
             AssertEqual(sim.Thermal.UnmetThermalDeficitMw, 0.0, "UnmetThermalDeficitMw");
-            AssertTrue(PhysicsEngine.ComputeHthpCop(25.0) <= 6.9 && PhysicsEngine.ComputeHthpCop(-5.0) >= 4.6, "ComputeHthpCop bounds");
+            AssertTrue(PhysicsEngine.ComputeHthpCop(25.0) <= 6.0 && PhysicsEngine.ComputeHthpCop(-3.0) >= 4.0, "ComputeHthpCop bounds");
         }
 
         private static void TestVault3FaultSdn()
@@ -185,7 +192,7 @@ namespace RakdaSim
             {
                 AssertTrue(simSdnOn.Vaults[i].ItMw <= 2.0 + 1e-9, "Vault capacity cap");
             }
-            AssertEqual(simSdnOn.Optical.SdnEfficiencyFactor, 74.9, "SdnEfficiencyFactor");
+            AssertEqual(simSdnOn.Optical.SdnEfficiencyFactor, 70.1, "SdnEfficiencyFactor");
             AssertTrue(simSdnOn.Thermal.RingPumpingKw < simSdnOff.Thermal.RingPumpingKw, "SDN reduces pumping power");
             AssertTrue(simSdnOn.Optical.ActiveLocalE2eRttUs < 160.0, "ActiveLocalE2eRttUs < 160");
         }
@@ -193,37 +200,41 @@ namespace RakdaSim
         private static void TestSummerExergyCascade()
         {
             SimResult sim = PhysicsEngine.Compute(PhysicsEngine.GetPreset("summer_exergy").Params);
-            AssertNear(sim.Thermal.DistrictDemandMw, 1.45, 1e-6, "DistrictDemandMw");
-            AssertNear(sim.Thermal.SurplusMw, 8.35, 1e-6, "SurplusMw");
+            AssertNear(sim.Thermal.DistrictDemandMw, 3.01, 1e-6, "DistrictDemandMw");
+            AssertNear(sim.Thermal.TotalNetworkDemandMw, 3.40, 1e-6, "TotalNetworkDemandMw");
+            AssertNear(sim.Thermal.SurplusMw, 6.40, 1e-6, "SurplusMw");
+            AssertEqual(sim.Thermal.TcesChargeMw, 0.0, "TcesChargeMw");
+            AssertEqual(sim.Thermal.TiPtesChargeMw, 0.0, "TiPtesChargeMw");
 
             double cascadeSum =
                 sim.Thermal.ThermalStoreChargeMw +
-                sim.Thermal.TcesChargeMw +
-                sim.Thermal.TiPtesChargeMw +
+                sim.Thermal.CommercialHeatSalesMw +
                 sim.Thermal.OrcThermalInputMw +
-                sim.Thermal.MofChillerMw +
                 sim.Thermal.DryCoolerRejectionMw;
             AssertNear(cascadeSum, sim.Thermal.SurplusMw, 1e-6, "Cascade energy conservation");
-            AssertTrue(sim.Thermal.OrcOutputKw >= 418.0 && sim.Thermal.OrcOutputKw <= 440.0, "OrcOutputKw in [418, 440]");
+            AssertTrue(sim.Thermal.OrcOutputKw >= 300.0 && sim.Thermal.OrcOutputKw <= 420.0, "OrcOutputKw in [300, 420]");
 
             SimState extreme = PhysicsEngine.GetPreset("summer_exergy").Params.Clone();
             extreme.AmbientTempC = 30.0;
             extreme.ThermalStoreSoc = 1.0;
             SimResult extremeSim = PhysicsEngine.Compute(extreme);
-            AssertTrue(extremeSim.Thermal.OrcOutputKw <= 440.0, "Extreme summer OrcOutputKw <= 440");
+            AssertTrue(extremeSim.Thermal.OrcOutputKw <= 420.0, "Extreme summer OrcOutputKw <= 420");
         }
 
         private static void TestHydrologyDrought()
         {
             SimResult nominal = PhysicsEngine.Compute(PhysicsEngine.GetPreset("nominal").Params);
             AssertNear(nominal.Hydrology.AnnualHarvestPer100kM3, 55620.0, 1e-3, "AnnualHarvestPer100kM3");
-            AssertNear(nominal.Hydrology.AnnualRainHarvestM3, 66744.0, 1e-3, "AnnualRainHarvestM3");
-            AssertTrue(nominal.Hydrology.FullTankAutonomyDays >= 45.0 && nominal.Hydrology.FullTankAutonomyDays <= 66.0, "FullTankAutonomyDays");
-            AssertEqual(nominal.Hydrology.AvoidedPotableWaterM3Yr, 166500.0, "AvoidedPotableWaterM3Yr");
+            AssertNear(nominal.Hydrology.AnnualRainHarvestM3, 55620.0, 1e-3, "AnnualRainHarvestM3");
+            AssertEqual(PhysicsEngine.DroughtReserveDays, 44, "DroughtReserveDays");
+            AssertEqual(PhysicsEngine.UpwMakeupMaxM3Yr, 3265.0, "UpwMakeupMaxM3Yr");
+            AssertEqual(PhysicsEngine.AvoidedPotableMinM3Yr, 157680.0, "AvoidedPotableMinM3Yr");
+            AssertEqual(PhysicsEngine.AvoidedPotableMaxM3Yr, 175200.0, "AvoidedPotableMaxM3Yr");
 
             SimResult drought = PhysicsEngine.Compute(PhysicsEngine.GetPreset("dublin_drought").Params);
             AssertEqual(drought.Hydrology.AnnualRainHarvestM3, 0.0, "Drought AnnualRainHarvestM3");
-            AssertNear(drought.Hydrology.CisternVolumeM3, 4200.0, 1e-6, "Drought CisternVolumeM3");
+            AssertNear(drought.Hydrology.CisternVolumeM3, 6700.0, 1e-6, "Drought CisternVolumeM3");
+            AssertTrue(drought.Hydrology.DroughtAutonomyDays >= 44.0 && drought.Hydrology.DroughtAutonomyDays <= 45.0, "Drought reserve ~44 d");
         }
 
         private static void TestOpticalFinancialSurvey()
@@ -237,19 +248,24 @@ namespace RakdaSim
             AssertEqual(sim.Optical.LocalBreakoutPct, 87.34, "LocalBreakoutPct");
             AssertEqual(sim.Optical.WanPowerSavedMWhYr, 455.0, "WanPowerSavedMWhYr");
 
-            AssertEqual(sim.Financial.CapexTotalM, 137.08, "CapexTotalM");
-            AssertEqual(sim.Financial.CounterfactualCapexM, 215.59, "CounterfactualCapexM");
-            AssertEqual(sim.Financial.EbitdaAnnualM, 22.20, "EbitdaAnnualM");
-            AssertEqual(sim.Financial.SimplePaybackYr, 6.2, "SimplePaybackYr");
-            AssertEqual(sim.Financial.IrrPct, 15.7, "IrrPct");
-            AssertEqual(sim.Financial.Npv4PctM, 232.98, "Npv4PctM");
-            AssertEqual(sim.Financial.Npv8PctM, 105.07, "Npv8PctM");
-            AssertEqual((int)Math.Round(sim.Financial.TotalAvoidedCo2TonYr), 23842, "TotalAvoidedCo2TonYr");
+            AssertEqual(sim.Financial.CapexTotalM, 136.66, "CapexTotalM");
+            AssertEqual(sim.Financial.CapexDistrictM, 57.31, "CapexDistrictM");
+            AssertEqual(sim.Financial.CapexDcOperatorM, 79.35, "CapexDcOperatorM");
+            AssertEqual(sim.Financial.ColocationRentEurKwMo, 145.0, "ColocationRentEurKwMo");
+            AssertEqual(sim.Financial.EbitdaAnnualM, 19.60, "EbitdaAnnualM");
+            AssertEqual(sim.Financial.SimplePaybackYr, 7.0, "SimplePaybackYr");
+            AssertEqual(sim.Financial.IrrPct, 13.7, "IrrPct");
+            AssertEqual(sim.Financial.Npv4PctM, 189.0, "Npv4PctM");
+            AssertEqual(sim.Financial.Npv8PctM, 77.0, "Npv8PctM");
+            AssertEqual(sim.Financial.UtilityIrrPct, 4.2, "UtilityIrrPct");
+            AssertEqual(sim.Financial.UtilityLcohNetEurMwh, 93.0, "UtilityLcohNetEurMwh");
+            AssertEqual(sim.Financial.TcoUsciM, 520.0, "TcoUsciM");
+            AssertEqual(sim.Financial.BillUsciEurYr, 536.0, "BillUsciEurYr");
 
-            AssertEqual(sim.Survey.SampleSize, 109, "Survey.SampleSize");
-            AssertEqual(sim.Survey.DcComfortScore, 3.19, "Survey.DcComfortScore");
-            AssertEqual(sim.Survey.RecycledWaterScore, 3.86, "Survey.RecycledWaterScore");
-            AssertEqual(sim.Survey.TopConcernNoiseVibrationPct, 33.7, "Survey.TopConcernNoiseVibrationPct");
+            AssertEqual(sim.Survey.SampleSize, 105, "Survey.SampleSize");
+            AssertEqual(sim.Survey.DcComfortScore, 3.20, "Survey.DcComfortScore");
+            AssertEqual(sim.Survey.RecycledWaterScore, 3.87, "Survey.RecycledWaterScore");
+            AssertEqual(sim.Survey.TopConcernNoiseVibrationPct, 35.1, "Survey.TopConcernNoiseVibrationPct");
         }
 
         private static void TestSubsystemInspectors()
